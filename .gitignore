@@ -17,3 +17,11 @@ qrc_*
 Ripes
 RipesTest
 libRipesLib.a
+
+# shouldn't these be here?
+.qt
+**/CMakeCache.txt
+**/compile_commands.json
+**/CMakeFiles/
+**/*.cmake
+**/*.depends
