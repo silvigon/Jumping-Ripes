@@ -66,11 +66,15 @@ public:
     // boolean 0/1 values.
     controlflow_or->out >> pc_src->select;
 
-    controlflow_or->out >> *efsc_or->in[0];
-    ecallChecker->syscallExit >> *efsc_or->in[1];
+    // MODIFIED: routes syscallExit straight to ifid_reg.clear
+    //controlflow_or->out >> *efsc_or->in[0];
+    //ecallChecker->syscallExit >> *efsc_or->in[1];
+    ecallChecker->syscallExit >> ifid_reg->clear;
 
-    efsc_or->out >> *efschz_or->in[0];
-    hzunit->hazardIDEXClear >> *efschz_or->in[1];
+    // MODIFIED: routes hazardIDEXClear straight to idex_reg.clear
+    //efsc_or->out >> *efschz_or->in[0];
+    //hzunit->hazardIDEXClear >> *efschz_or->in[1];
+    hzunit->hazardIDEXClear >> idex_reg->clear;
 
     // -----------------------------------------------------------------------
     // Instruction memory
@@ -171,7 +175,7 @@ public:
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
     hzunit->hazardFEEnable >> ifid_reg->enable;
-    efsc_or->out >> ifid_reg->clear;
+    //efsc_or->out >> ifid_reg->clear;		// MODIFIED
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
     // -----------------------------------------------------------------------
@@ -182,7 +186,7 @@ public:
     // ID/EX
     hzunit->hazardIDEXEnable >> idex_reg->enable;
     hzunit->hazardIDEXClear >> idex_reg->stalled_in;
-    efschz_or->out >> idex_reg->clear;
+    //efschz_or->out >> idex_reg->clear;	// MODIFIED
 
     // Data
     ifid_reg->pc4_out >> idex_reg->pc4_in;
@@ -320,9 +324,9 @@ public:
   // True if branch taken or jump instruction
   SUBCOMPONENT(controlflow_or, TYPE(Or<1, 2>));
   // True if controlflow action or performing syscall finishing
-  SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));
+  //SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));		// MODIFIED
   // True if above or stalling due to load-use hazard
-  SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
+  //SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));	// MODIFIED
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
 
