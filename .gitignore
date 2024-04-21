@@ -25,3 +25,6 @@ libRipesLib.a
 **/CMakeFiles/
 **/*.cmake
 **/*.depends
+
+mocs_*
+*.a
