@@ -34,7 +34,7 @@ constexpr const char rv5s_desc[] =
     "forwarding.";
 constexpr const char rv5s_2s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding, with delayed branch solved at the EX stage.";
+    "forwarding, with delayed branch solved at the MEM stage.";
 constexpr const char rv5s_no_fw_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination but no "
     "forwarding unit.";
