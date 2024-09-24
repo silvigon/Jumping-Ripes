@@ -17,20 +17,3 @@ qrc_*
 Ripes
 RipesTest
 libRipesLib.a
-
-
-## shouldn't these be here?
-
-# Qt generated files
-.qt/
-*.qrc.depends
-mocs_*
-
-# Executables & libraries
-*.a
-
-# generated on `cmake .`
-CMakeCache.txt
-**/CMakeFiles/
-**/cmake_install.cmake
-compile_commands.json
