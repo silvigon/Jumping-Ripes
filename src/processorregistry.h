@@ -29,6 +29,7 @@ enum ProcessorID {
   RV32_5S_NO_FW,
   RV32_5S,
   RV32_5S_2S_DB,
+  RV32_5S_3S,
   RV32_5S_3S_DB,
   RV32_6S_DUAL,
   RV64_SS,
@@ -37,6 +38,7 @@ enum ProcessorID {
   RV64_5S_NO_FW,
   RV64_5S,
   RV64_5S_2S_DB,
+  RV64_5S_3S,
   RV64_5S_3S_DB,
   RV64_6S_DUAL,
   NUM_PROCESSORS

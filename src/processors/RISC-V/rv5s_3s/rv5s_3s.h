@@ -22,7 +22,7 @@
 
 // Stage separating registers
 #include "../rv5s_no_fw_hz/rv5s_no_fw_hz_ifid.h"
-#include "../rv5s_3s/rv5s_3s_exmem.h"	// MODIFIED
+#include "rv5s_3s_exmem.h"	// MODIFIED
 #include "../rv5s/rv5s_idex.h"
 #include "../rv5s/rv5s_memwb.h"
 
@@ -35,7 +35,7 @@ namespace core {
 using namespace Ripes;
 
 template <typename XLEN_T>
-class RV5S_3S_DB : public RipesVSRTLProcessor {
+class RV5S_3S : public RipesVSRTLProcessor {
   static_assert(std::is_same<uint32_t, XLEN_T>::value ||
                     std::is_same<uint64_t, XLEN_T>::value,
                 "Only supports 32- and 64-bit variants");
@@ -43,8 +43,8 @@ class RV5S_3S_DB : public RipesVSRTLProcessor {
 
 public:
   enum Stage { IF = 0, ID = 1, EX = 2, MEM = 3, WB = 4, STAGECOUNT };
-  RV5S_3S_DB(const QStringList &extensions)
-      : RipesVSRTLProcessor("5-Stage RISC-V Processor (3-slot delayed branch)") {
+  RV5S_3S(const QStringList &extensions)
+      : RipesVSRTLProcessor("5-Stage RISC-V Processor (3-slot predict-not-taken)") {
     m_enabledISA = ISAInfoRegistry::getISA<XLenToRVISA<XLEN>()>(extensions);
     decode->setISA(m_enabledISA);
     uncompress->setISA(m_enabledISA);
@@ -68,15 +68,11 @@ public:
     //controlflow_or->out >> pc_src->select;
     exmem_reg->do_branch_out >> pc_src->select;
 
-    // MODIFIED: routes syscallExit straight to ifid_reg.clear
-    //controlflow_or->out >> *efsc_or->in[0];
-    //ecallChecker->syscallExit >> *efsc_or->in[1];
-    ecallChecker->syscallExit >> ifid_reg->clear;
+    controlflow_or->out >> *efsc_or->in[0];
+    ecallChecker->syscallExit >> *efsc_or->in[1];
 
-    // MODIFIED: routes hazardIDEXClear straight to idex_reg.clear
-    //efsc_or->out >> *efschz_or->in[0];
-    //hzunit->hazardIDEXClear >> *efschz_or->in[1];
-    hzunit->hazardIDEXClear >> idex_reg->clear;
+    efsc_or->out >> *efschz_or->in[0];
+    hzunit->hazardIDEXClear >> *efschz_or->in[1];
 
     // -----------------------------------------------------------------------
     // Instruction memory
@@ -179,7 +175,7 @@ public:
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
     hzunit->hazardFEEnable >> ifid_reg->enable;
-    //efsc_or->out >> ifid_reg->clear;		// MODIFIED
+    efsc_or->out >> ifid_reg->clear;
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
     // -----------------------------------------------------------------------
@@ -190,7 +186,7 @@ public:
     // ID/EX
     hzunit->hazardIDEXEnable >> idex_reg->enable;
     hzunit->hazardIDEXClear >> idex_reg->stalled_in;
-    //efschz_or->out >> idex_reg->clear;	// MODIFIED
+    efschz_or->out >> idex_reg->clear;
 
     // Data
     ifid_reg->pc4_out >> idex_reg->pc4_in;
@@ -330,9 +326,9 @@ public:
   // True if branch taken or jump instruction
   SUBCOMPONENT(controlflow_or, TYPE(Or<1, 2>));
   // True if controlflow action or performing syscall finishing
-  //SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));		// MODIFIED
+  SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));
   // True if above or stalling due to load-use hazard
-  //SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));	// MODIFIED
+  SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
 

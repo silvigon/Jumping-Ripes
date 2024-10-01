@@ -4,6 +4,7 @@
 
 #include "processors/RISC-V/rv5s/rv5s.h"
 #include "processors/RISC-V/rv5s_2s_db/rv5s_2s_db.h"
+#include "processors/RISC-V/rv5s_3s/rv5s_3s.h"
 #include "processors/RISC-V/rv5s_3s_db/rv5s_3s_db.h"
 #include "processors/RISC-V/rv5s_no_fw/rv5s_no_fw.h"
 #include "processors/RISC-V/rv5s_no_fw_hz/rv5s_no_fw_hz.h"
@@ -37,14 +38,18 @@ constexpr const char rv5s_no_hz_desc[] =
     "detection/elimination." no_hz_note;
 constexpr const char rv5s_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding.";
+    "forwarding. Branches are assumed not taken and solved at the MEM stage "
+    "by default.";
 constexpr const char rv5s_2s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding, with delayed branch solved at the MEM stage."
+    "forwarding, with delayed branches solved at the MEM stage."
     delayed_branch_note;
+constexpr const char rv5s_3s_desc[] =
+    "A 5-stage in-order processor with hazard detection/elimination and "
+    "forwarding, with branches assumed not taken and solved at the WB stage.";
 constexpr const char rv5s_3s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding, with delayed branch solved at the WB stage."
+    "forwarding, with delayed branches solved at the WB stage."
     delayed_branch_note;
 constexpr const char rv5s_no_fw_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination but no "
@@ -194,16 +199,39 @@ ProcessorRegistry::ProcessorRegistry() {
       ProcessorID::RV64_5S_2S_DB, "5-stage processor (2-slot delayed branch)",
       rv5s_2s_db_desc, layouts, defRegVals));
 
-  // RISC-V 5-stage (3-slot delayed branch)
+  // RISC-V 5-stage (3-slot predict-not-taken)
   layouts = {{"Standard",
-              ":/layouts/RISC-V/rv5s_3s_db/rv5s_3s_standard_layout.json",
+              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_standard_layout.json",
               {{{0, 0}, QPointF{0.08, 0}},
                {{0, 1}, QPointF{0.29, 0}},
                {{0, 2}, QPointF{0.55, 0}},
                {{0, 3}, QPointF{0.75, 0}},
                {{0, 4}, QPointF{0.87, 0}}}},
              {"Extended",
-              ":/layouts/RISC-V/rv5s_3s_db/rv5s_3s_extended_layout.json",
+              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_extended_layout.json",
+              {{{0, 0}, QPointF{0.08, 0}},
+               {{0, 1}, QPointF{0.28, 0}},
+               {{0, 2}, QPointF{0.54, 0}},
+               {{0, 3}, QPointF{0.78, 0}},
+               {{0, 4}, QPointF{0.9, 0}}}}};
+  defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
+  addProcessor(ProcInfo<vsrtl::core::RV5S_3S<uint32_t>>(
+      ProcessorID::RV32_5S_3S, "5-stage processor (3-slot predict-not-taken)",
+      rv5s_3s_desc, layouts, defRegVals));
+  addProcessor(ProcInfo<vsrtl::core::RV5S_3S<uint64_t>>(
+      ProcessorID::RV64_5S_3S, "5-stage processor (3-slot predict-not-taken)",
+      rv5s_3s_desc, layouts, defRegVals));
+
+  // RISC-V 5-stage (3-slot delayed branch)
+  layouts = {{"Standard",
+              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_standard_layout.json",
+              {{{0, 0}, QPointF{0.08, 0}},
+               {{0, 1}, QPointF{0.29, 0}},
+               {{0, 2}, QPointF{0.55, 0}},
+               {{0, 3}, QPointF{0.75, 0}},
+               {{0, 4}, QPointF{0.87, 0}}}},
+             {"Extended",
+              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_extended_layout.json",
               {{{0, 0}, QPointF{0.08, 0}},
                {{0, 1}, QPointF{0.28, 0}},
                {{0, 2}, QPointF{0.54, 0}},
