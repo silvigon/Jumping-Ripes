@@ -23,6 +23,11 @@ namespace Ripes {
   "with hazards will execute incorrectly, unless resolved by inserting "       \
   "nop's to manually stall the pipeline.</b>";
 
+#define delayed_branch_note                                                    \
+  "<br><b>NOTE: this branch strategy may result in programs executing "        \
+  "incorrectly, unless resolved by rearranging the instructions surrounding "  \
+  "branches, or inserting nop's after them to fill the delay slots.</b>";
+
 constexpr const char rv5s_no_fw_hz_desc[] =
     "A 5-stage in-order processor with no forwarding or hazard "
     "detection/elimination." no_hz_note;
@@ -35,10 +40,12 @@ constexpr const char rv5s_desc[] =
     "forwarding.";
 constexpr const char rv5s_2s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding, with delayed branch solved at the MEM stage.";
+    "forwarding, with delayed branch solved at the MEM stage."
+    delayed_branch_note;
 constexpr const char rv5s_3s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
-    "forwarding, with delayed branch solved at the WB stage.";
+    "forwarding, with delayed branch solved at the WB stage."
+    delayed_branch_note;
 constexpr const char rv5s_no_fw_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination but no "
     "forwarding unit.";
