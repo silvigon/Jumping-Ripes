@@ -66,9 +66,10 @@ public:
     // boolean 0/1 values.
     // MODIFIED: controlflow_or->out is routed through exmem->do_branch
     //controlflow_or->out >> pc_src->select;
+    //controlflow_or->out >> *efsc_or->in[0];
     exmem_reg->do_branch_out >> pc_src->select;
+    exmem_reg->do_branch_out >> *efsc_or->in[0];
 
-    controlflow_or->out >> *efsc_or->in[0];
     ecallChecker->syscallExit >> *efsc_or->in[1];
 
     efsc_or->out >> *efschz_or->in[0];
