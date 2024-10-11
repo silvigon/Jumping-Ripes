@@ -16,14 +16,11 @@ class RV5S_3S_EXMEM : public RV5S_EXMEM<XLEN> {
 public:
   RV5S_3S_EXMEM(const std::string &name, SimComponent *parent)
       : RV5S_EXMEM<XLEN>(name, parent) {
-    // We want stalling info to persist through clearing of the register, so
-    // stalled register is always enabled and never cleared.
-    //CONNECT_REGISTERED_CLEN_INPUT(stalled, 0, 1);
 
-    CONNECT_REGISTERED_CLEN_INPUT(do_branch, this->clear, this->enable);
+    CONNECT_REGISTERED_INPUT(do_branch);
   }
   // Add register to EX/MEM
-  REGISTERED_CLEN_INPUT(do_branch, 1);
+  REGISTERED_INPUT(do_branch, 1);
 };
 
 } // namespace core
