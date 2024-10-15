@@ -218,7 +218,14 @@ public:
     // -----------------------------------------------------------------------
     // EX/MEM
     1 >> exmem_reg->enable;
-    hzunit->hazardEXMEMClear >> exmem_reg->clear;
+
+    // MODIFIED: exmem_reg->clear can be asserted by either hazardEXMEMClear
+    //           or do_branch_out via intermediate OR gate
+    //hzunit->hazardEXMEMClear >> exmem_reg->clear;
+    exmem_reg->do_branch_out >> *mem_clear_or->in[0];
+    hzunit->hazardEXMEMClear >> *mem_clear_or->in[1];
+    mem_clear_or->out >> exmem_reg->clear;
+
     hzunit->hazardEXMEMClear >> *mem_stalled_or->in[0];
     idex_reg->stalled_out >> *mem_stalled_or->in[1];
     mem_stalled_or->out >> exmem_reg->stalled_in;
@@ -332,6 +339,7 @@ public:
   SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
+  SUBCOMPONENT(mem_clear_or, TYPE(Or<1, 2>));	// MODIFIED
 
   // Address spaces
   ADDRESSSPACEMM(m_memory);
