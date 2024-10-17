@@ -55,7 +55,9 @@ public:
     pc_inc->out >> pc_4->op2;
     pc_src->out >> pc_reg->in;
     0 >> pc_reg->clear;
-    hzunit->hazardFEEnable >> pc_reg->enable;
+    // MODIFIED: re-route hazardFEEenable to enable overriding on branches
+    //hzunit->hazardFEEnable >> pc_reg->enable;
+    ifid_forceclear_or->out >> pc_reg->enable;
 
     2 >> pc_inc->get(PcInc::INC2);
     4 >> pc_inc->get(PcInc::INC4);
@@ -175,7 +177,9 @@ public:
     pc_4->out >> ifid_reg->pc4_in;
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
-    hzunit->hazardFEEnable >> ifid_reg->enable;
+    // MODIFIED: re-route hazardFEEenable to enable overriding on branches
+    //hzunit->hazardFEEnable >> ifid_reg->enable;
+    ifid_forceclear_or->out >> ifid_reg->enable;
     efsc_or->out >> ifid_reg->clear;
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
@@ -290,6 +294,10 @@ public:
     memwb_reg->reg_do_write_out >> hzunit->wb_do_reg_write;
 
     idex_reg->opcode_out >> hzunit->opcode;
+
+    // MODIFIED: override ifid_reg->enable on branching
+    mem_clear_or->out >> *ifid_forceclear_or->in[0];
+    hzunit->hazardFEEnable >> *ifid_forceclear_or->in[1];
   }
 
   // Design subcomponents
@@ -339,7 +347,11 @@ public:
   SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
-  SUBCOMPONENT(mem_clear_or, TYPE(Or<1, 2>));	// MODIFIED
+
+  // MODIFIED: True if controlflow action or ECALL hazard is detected
+  SUBCOMPONENT(mem_clear_or, TYPE(Or<1, 2>));
+  // MODIFIED: Overrides IF/ID enable signal on branching
+  SUBCOMPONENT(ifid_forceclear_or, TYPE(Or<1, 2>));
 
   // Address spaces
   ADDRESSSPACEMM(m_memory);
