@@ -224,14 +224,14 @@ ProcessorRegistry::ProcessorRegistry() {
 
   // RISC-V 5-stage (3-slot delayed branch)
   layouts = {{"Standard",
-              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_standard_layout.json",
+              ":/layouts/RISC-V/rv5s_3s_db/rv5s_3s_db_standard_layout.json",
               {{{0, 0}, QPointF{0.08, 0}},
                {{0, 1}, QPointF{0.29, 0}},
                {{0, 2}, QPointF{0.55, 0}},
                {{0, 3}, QPointF{0.75, 0}},
                {{0, 4}, QPointF{0.87, 0}}}},
              {"Extended",
-              ":/layouts/RISC-V/rv5s_3s/rv5s_3s_extended_layout.json",
+              ":/layouts/RISC-V/rv5s_3s_db/rv5s_3s_db_extended_layout.json",
               {{{0, 0}, QPointF{0.08, 0}},
                {{0, 1}, QPointF{0.28, 0}},
                {{0, 2}, QPointF{0.54, 0}},
