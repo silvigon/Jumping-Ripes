@@ -106,7 +106,7 @@ private slots:
   }
   void testRV32_5Stage_3Slot() {
     runTests(ProcessorID::RV32_5S_3S, {"M", "C"},
-             {RISCV64_TEST_DIR, RISCV64_C_TEST_DIR});
+             {RISCV32_TEST_DIR, RISCV32_C_TEST_DIR});
   }
 };
 
