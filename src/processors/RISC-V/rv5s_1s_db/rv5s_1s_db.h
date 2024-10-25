@@ -27,7 +27,7 @@
 #include "../rv5s/rv5s_memwb.h"
 
 // Forwarding & Hazard detection unit
-#include "../rv5s/rv5s_forwardingunit.h"
+#include "rv5s_1s_forwardingunit.h"
 #include "../rv5s/rv5s_hazardunit.h"
 #include "vsrtl_interface.h"
 
@@ -112,28 +112,44 @@ public:
 
     // -----------------------------------------------------------------------
     // Branch
-    // MODIFIED: moved to ID stage
+    // MODIFIED: moved to ID stage, added forwarding multiplexers
+
+    // branch forwarding source selection
+    registerFile->r1_out  >> branch_op1_src->get(ForwardingSrc_1S::IdStage);
+    alu->res              >> branch_op1_src->get(ForwardingSrc_1S::ExStage);
+    exmem_reg->alures_out >> branch_op1_src->get(ForwardingSrc_1S::MemStage);
+    reg_wr_src->out       >> branch_op1_src->get(ForwardingSrc_1S::WbStage);
+    funit->branch_op1_fwctrl >> branch_op1_src->select;
+
+    registerFile->r2_out  >> branch_op2_src->get(ForwardingSrc_1S::IdStage);
+    alu->res              >> branch_op2_src->get(ForwardingSrc_1S::ExStage);
+    exmem_reg->alures_out >> branch_op2_src->get(ForwardingSrc_1S::MemStage);
+    reg_wr_src->out       >> branch_op2_src->get(ForwardingSrc_1S::WbStage);
+    funit->branch_op2_fwctrl >> branch_op2_src->select;
+
+    // jump target operand source selection
+    ifid_reg->pc_out     >> jump_addr_src->get(AluSrc1::PC);
+    branch_op1_src->out  >> jump_addr_src->get(AluSrc1::REG1);
+    control->alu_op1_ctrl >> jump_addr_src->select;
 
     //idex_reg->br_op_out >> branch->comp_op;
-    control->comp_ctrl >> branch->comp_op;			// MODIFIED
-
     //reg1_fw_src->out >> branch->op1;
     //reg2_fw_src->out >> branch->op2;
-    registerFile->r1_out >> branch->op1;	//
-    registerFile->r2_out >> branch->op2;	// TODO: this but with forwarding
+    control->comp_ctrl >> branch->comp_op;	//
+    branch_op1_src->out >> branch->op1;		//
+    branch_op2_src->out >> branch->op2;		// MODIFIED
 
     branch->res >> *br_and->in[0];
     br_and->out >> *controlflow_or->in[0];
     //idex_reg->do_br_out >> *br_and->in[1];
     //idex_reg->do_jmp_out >> *controlflow_or->in[1];
-    control->do_branch >> *br_and->in[1];			// MODIFIED
+    control->do_branch >> *br_and->in[1];			//
     control->do_jump >> *controlflow_or->in[1];		// MODIFIED
 
-    // MODIFIED: add adder for target address calculation
-    ifid_reg->pc_out >> branch_adder->op1;
-    immediate->imm >> branch_adder->op2;
-
+    // MODIFIED: get branch target address from dedicated adder
     //alu->res >> pc_src->get(PcSrc::ALU);
+    jump_addr_src->out >> branch_adder->op1;
+    immediate->imm >> branch_adder->op2;
     branch_adder->out >> pc_src->get(PcSrc::ALU);	// MODIFIED
     pc_4->out >> pc_src->get(PcSrc::PC4);
 
@@ -272,8 +288,13 @@ public:
 
     // -----------------------------------------------------------------------
     // Forwarding unit
+    decode->r1_reg_idx >> funit->if_reg1_idx;			//
+    decode->r2_reg_idx >> funit->if_reg2_idx;			// MODIFIED
     idex_reg->rd_reg1_idx_out >> funit->id_reg1_idx;
     idex_reg->rd_reg2_idx_out >> funit->id_reg2_idx;
+
+    idex_reg->wr_reg_idx_out >> funit->ex_reg_wr_idx;	//
+    idex_reg->reg_do_write_out >> funit->ex_reg_wr_en;	// MODIFIED
 
     exmem_reg->wr_reg_idx_out >> funit->mem_reg_wr_idx;
     exmem_reg->reg_do_write_out >> funit->mem_reg_wr_en;
@@ -324,13 +345,18 @@ public:
   SUBCOMPONENT(reg1_fw_src, TYPE(EnumMultiplexer<ForwardingSrc, XLEN>));
   SUBCOMPONENT(reg2_fw_src, TYPE(EnumMultiplexer<ForwardingSrc, XLEN>));
   SUBCOMPONENT(pc_inc, TYPE(EnumMultiplexer<PcInc, XLEN>));
+  // MODIFIED: branch operand forwarding multiplexers
+  SUBCOMPONENT(branch_op1_src, TYPE(EnumMultiplexer<ForwardingSrc_1S, XLEN>));
+  SUBCOMPONENT(branch_op2_src, TYPE(EnumMultiplexer<ForwardingSrc_1S, XLEN>));
+  // MODIFIED: enable jumps relative to address in register
+  SUBCOMPONENT(jump_addr_src, TYPE(EnumMultiplexer<AluSrc1, XLEN>));
 
   // Memories
   SUBCOMPONENT(instr_mem, TYPE(ROM<XLEN, c_RVInstrWidth>));
   SUBCOMPONENT(data_mem, TYPE(RVMemory<XLEN, XLEN>));
 
   // Forwarding & hazard detection units
-  SUBCOMPONENT(funit, ForwardingUnit);
+  SUBCOMPONENT(funit, ForwardingUnit_1S);
   SUBCOMPONENT(hzunit, HazardUnit);
 
   // Gates
