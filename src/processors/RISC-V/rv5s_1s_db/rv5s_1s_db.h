@@ -28,7 +28,7 @@
 
 // Forwarding & Hazard detection unit
 #include "rv5s_1s_forwardingunit.h"
-#include "../rv5s/rv5s_hazardunit.h"
+#include "rv5s_1s_hazardunit.h"
 #include "vsrtl_interface.h"
 
 namespace vsrtl {
@@ -307,6 +307,10 @@ public:
     decode->r1_reg_idx >> hzunit->id_reg1_idx;
     decode->r2_reg_idx >> hzunit->id_reg2_idx;
 
+    // MODIFIED: load-use hazard detection for branch operands
+    exmem_reg->mem_do_read_out >> hzunit->mem_do_mem_read_en;
+    exmem_reg->wr_reg_idx_out >> hzunit->mem_reg_wr_idx;
+
     idex_reg->mem_do_read_out >> hzunit->ex_do_mem_read_en;
     idex_reg->wr_reg_idx_out >> hzunit->ex_reg_wr_idx;
 
@@ -315,6 +319,7 @@ public:
     memwb_reg->reg_do_write_out >> hzunit->wb_do_reg_write;
 
     idex_reg->opcode_out >> hzunit->opcode;
+    decode->opcode >> hzunit->id_opcode;
   }
 
   // Design subcomponents
@@ -355,9 +360,9 @@ public:
   SUBCOMPONENT(instr_mem, TYPE(ROM<XLEN, c_RVInstrWidth>));
   SUBCOMPONENT(data_mem, TYPE(RVMemory<XLEN, XLEN>));
 
-  // Forwarding & hazard detection units
+  // MODIFIED: Forwarding & hazard detection units
   SUBCOMPONENT(funit, ForwardingUnit_1S);
-  SUBCOMPONENT(hzunit, HazardUnit);
+  SUBCOMPONENT(hzunit, HazardUnit_1S);
 
   // Gates
   // True if branch instruction and branch taken
