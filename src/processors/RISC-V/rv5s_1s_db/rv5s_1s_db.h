@@ -27,8 +27,8 @@
 #include "../rv5s/rv5s_memwb.h"
 
 // Forwarding & Hazard detection unit
-#include "rv5s_1s_forwardingunit.h"
-#include "rv5s_1s_hazardunit.h"
+#include "../rv5s_1s/rv5s_1s_forwardingunit.h"
+#include "../rv5s_1s/rv5s_1s_hazardunit.h"
 #include "vsrtl_interface.h"
 
 namespace vsrtl {
