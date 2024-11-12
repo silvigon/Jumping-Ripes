@@ -30,7 +30,8 @@ QVariant PipelineDiagramModel::headerData(int section,
     return QVariant();
   if (orientation == Qt::Horizontal) {
     // Cycle number
-    return QString::number(section);
+    // MODIFIED: number columns from one instead of zero
+    return QString::number(section + 1);
   } else {
     const auto addr = indexToAddress(section);
     return ProcessorHandler::disassembleInstr(addr);
@@ -71,7 +72,8 @@ void PipelineDiagramModel::prepareForView() {
 }
 
 void PipelineDiagramModel::gatherStageInfo() {
-  long long cycleCount = ProcessorHandler::getProcessor()->getCycleCount();
+  // MODIFIED: adjust for processor cycles indexing from one
+  long long cycleCount = ProcessorHandler::getProcessor()->getCycleCount() - 1;
   auto stageInfoForCycle = m_cycleStageInfos.find(cycleCount);
   if (stageInfoForCycle != m_cycleStageInfos.end()) {
     // Already gathered stage info for this cycle.
