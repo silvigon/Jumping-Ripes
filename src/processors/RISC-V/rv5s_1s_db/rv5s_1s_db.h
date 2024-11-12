@@ -22,20 +22,21 @@
 
 // Stage separating registers
 #include "../rv5s_no_fw_hz/rv5s_no_fw_hz_ifid.h"
-#include "rv5s_exmem.h"
-#include "rv5s_idex.h"
-#include "rv5s_memwb.h"
+#include "../rv5s/rv5s_exmem.h"
+#include "../rv5s/rv5s_idex.h"
+#include "../rv5s/rv5s_memwb.h"
 
 // Forwarding & Hazard detection unit
-#include "rv5s_forwardingunit.h"
-#include "rv5s_hazardunit.h"
+#include "../rv5s_1s/rv5s_1s_forwardingunit.h"
+#include "../rv5s_1s/rv5s_1s_hazardunit.h"
+#include "vsrtl_interface.h"
 
 namespace vsrtl {
 namespace core {
 using namespace Ripes;
 
 template <typename XLEN_T>
-class RV5S : public RipesVSRTLProcessor {
+class RV5S_1S_DB : public RipesVSRTLProcessor {
   static_assert(std::is_same<uint32_t, XLEN_T>::value ||
                     std::is_same<uint64_t, XLEN_T>::value,
                 "Only supports 32- and 64-bit variants");
@@ -43,8 +44,8 @@ class RV5S : public RipesVSRTLProcessor {
 
 public:
   enum Stage { IF = 0, ID = 1, EX = 2, MEM = 3, WB = 4, STAGECOUNT };
-  RV5S(const QStringList &extensions)
-      : RipesVSRTLProcessor("5-Stage RISC-V Processor") {
+  RV5S_1S_DB(const QStringList &extensions)
+      : RipesVSRTLProcessor("5-Stage RISC-V Processor (1-slot delayed branch)") {
     m_enabledISA = ISAInfoRegistry::getISA<XLenToRVISA<XLEN>()>(extensions);
     decode->setISA(m_enabledISA);
     uncompress->setISA(m_enabledISA);
@@ -66,11 +67,15 @@ public:
     // boolean 0/1 values.
     controlflow_or->out >> pc_src->select;
 
-    controlflow_or->out >> *efsc_or->in[0];
-    ecallChecker->syscallExit >> *efsc_or->in[1];
+    // MODIFIED: routes syscallExit straight to ifid_reg.clear
+    //controlflow_or->out >> *efsc_or->in[0];
+    //ecallChecker->syscallExit >> *efsc_or->in[1];
+    ecallChecker->syscallExit >> ifid_reg->clear;
 
-    efsc_or->out >> *efschz_or->in[0];
-    hzunit->hazardIDEXClear >> *efschz_or->in[1];
+    // MODIFIED: routes hazardIDEXClear straight to idex_reg.clear
+    //efsc_or->out >> *efschz_or->in[0];
+    //hzunit->hazardIDEXClear >> *efschz_or->in[1];
+    hzunit->hazardIDEXClear >> idex_reg->clear;
 
     // -----------------------------------------------------------------------
     // Instruction memory
@@ -107,17 +112,46 @@ public:
 
     // -----------------------------------------------------------------------
     // Branch
-    idex_reg->br_op_out >> branch->comp_op;
-    reg1_fw_src->out >> branch->op1;
-    reg2_fw_src->out >> branch->op2;
+    // MODIFIED: moved to ID stage, added forwarding multiplexers
+
+    // branch forwarding source selection
+    registerFile->r1_out  >> branch_op1_src->get(ForwardingSrc_1S::IdStage);
+    alu->res              >> branch_op1_src->get(ForwardingSrc_1S::ExStage);
+    exmem_reg->alures_out >> branch_op1_src->get(ForwardingSrc_1S::MemStage);
+    reg_wr_src->out       >> branch_op1_src->get(ForwardingSrc_1S::WbStage);
+    funit->branch_op1_fwctrl >> branch_op1_src->select;
+
+    registerFile->r2_out  >> branch_op2_src->get(ForwardingSrc_1S::IdStage);
+    alu->res              >> branch_op2_src->get(ForwardingSrc_1S::ExStage);
+    exmem_reg->alures_out >> branch_op2_src->get(ForwardingSrc_1S::MemStage);
+    reg_wr_src->out       >> branch_op2_src->get(ForwardingSrc_1S::WbStage);
+    funit->branch_op2_fwctrl >> branch_op2_src->select;
+
+    // jump target operand source selection
+    ifid_reg->pc_out     >> jump_addr_src->get(AluSrc1::PC);
+    branch_op1_src->out  >> jump_addr_src->get(AluSrc1::REG1);
+    control->alu_op1_ctrl >> jump_addr_src->select;
+
+    //idex_reg->br_op_out >> branch->comp_op;
+    //reg1_fw_src->out >> branch->op1;
+    //reg2_fw_src->out >> branch->op2;
+    control->comp_ctrl >> branch->comp_op;	//
+    branch_op1_src->out >> branch->op1;		//
+    branch_op2_src->out >> branch->op2;		// MODIFIED
 
     branch->res >> *br_and->in[0];
-    idex_reg->do_br_out >> *br_and->in[1];
     br_and->out >> *controlflow_or->in[0];
-    idex_reg->do_jmp_out >> *controlflow_or->in[1];
+    //idex_reg->do_br_out >> *br_and->in[1];
+    //idex_reg->do_jmp_out >> *controlflow_or->in[1];
+    control->do_branch >> *br_and->in[1];			//
+    control->do_jump >> *controlflow_or->in[1];		// MODIFIED
 
+    // MODIFIED: get branch target address from dedicated adder
+    //alu->res >> pc_src->get(PcSrc::ALU);
+    jump_addr_src->out >> branch_adder->op1;
+    immediate->imm >> branch_adder->op2;
+    branch_adder->out >> pc_src->get(PcSrc::ALU);	// MODIFIED
     pc_4->out >> pc_src->get(PcSrc::PC4);
-    alu->res >> pc_src->get(PcSrc::ALU);
 
     // -----------------------------------------------------------------------
     // ALU
@@ -171,7 +205,7 @@ public:
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
     hzunit->hazardFEEnable >> ifid_reg->enable;
-    efsc_or->out >> ifid_reg->clear;
+    //efsc_or->out >> ifid_reg->clear;		// MODIFIED
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
     // -----------------------------------------------------------------------
@@ -182,7 +216,7 @@ public:
     // ID/EX
     hzunit->hazardIDEXEnable >> idex_reg->enable;
     hzunit->hazardIDEXClear >> idex_reg->stalled_in;
-    efschz_or->out >> idex_reg->clear;
+    //efschz_or->out >> idex_reg->clear;	// MODIFIED
 
     // Data
     ifid_reg->pc4_out >> idex_reg->pc4_in;
@@ -254,8 +288,13 @@ public:
 
     // -----------------------------------------------------------------------
     // Forwarding unit
+    decode->r1_reg_idx >> funit->if_reg1_idx;			//
+    decode->r2_reg_idx >> funit->if_reg2_idx;			// MODIFIED
     idex_reg->rd_reg1_idx_out >> funit->id_reg1_idx;
     idex_reg->rd_reg2_idx_out >> funit->id_reg2_idx;
+
+    idex_reg->wr_reg_idx_out >> funit->ex_reg_wr_idx;	//
+    idex_reg->reg_do_write_out >> funit->ex_reg_wr_en;	// MODIFIED
 
     exmem_reg->wr_reg_idx_out >> funit->mem_reg_wr_idx;
     exmem_reg->reg_do_write_out >> funit->mem_reg_wr_en;
@@ -268,6 +307,10 @@ public:
     decode->r1_reg_idx >> hzunit->id_reg1_idx;
     decode->r2_reg_idx >> hzunit->id_reg2_idx;
 
+    // MODIFIED: load-use hazard detection for branch operands
+    exmem_reg->mem_do_read_out >> hzunit->mem_do_mem_read_en;
+    exmem_reg->wr_reg_idx_out >> hzunit->mem_reg_wr_idx;
+
     idex_reg->mem_do_read_out >> hzunit->ex_do_mem_read_en;
     idex_reg->wr_reg_idx_out >> hzunit->ex_reg_wr_idx;
 
@@ -276,6 +319,7 @@ public:
     memwb_reg->reg_do_write_out >> hzunit->wb_do_reg_write;
 
     idex_reg->opcode_out >> hzunit->opcode;
+    decode->opcode >> hzunit->id_opcode;
   }
 
   // Design subcomponents
@@ -285,6 +329,7 @@ public:
   SUBCOMPONENT(immediate, TYPE(Immediate<XLEN>));
   SUBCOMPONENT(decode, TYPE(Decode<XLEN>));
   SUBCOMPONENT(branch, TYPE(Branch<XLEN>));
+  SUBCOMPONENT(branch_adder, TYPE(Adder<XLEN>));	// MODIFIED
   SUBCOMPONENT(pc_4, Adder<XLEN>);
   SUBCOMPONENT(uncompress, TYPE(Uncompress<XLEN>));
 
@@ -305,14 +350,19 @@ public:
   SUBCOMPONENT(reg1_fw_src, TYPE(EnumMultiplexer<ForwardingSrc, XLEN>));
   SUBCOMPONENT(reg2_fw_src, TYPE(EnumMultiplexer<ForwardingSrc, XLEN>));
   SUBCOMPONENT(pc_inc, TYPE(EnumMultiplexer<PcInc, XLEN>));
+  // MODIFIED: branch operand forwarding multiplexers
+  SUBCOMPONENT(branch_op1_src, TYPE(EnumMultiplexer<ForwardingSrc_1S, XLEN>));
+  SUBCOMPONENT(branch_op2_src, TYPE(EnumMultiplexer<ForwardingSrc_1S, XLEN>));
+  // MODIFIED: enable jumps relative to address in register
+  SUBCOMPONENT(jump_addr_src, TYPE(EnumMultiplexer<AluSrc1, XLEN>));
 
   // Memories
   SUBCOMPONENT(instr_mem, TYPE(ROM<XLEN, c_RVInstrWidth>));
   SUBCOMPONENT(data_mem, TYPE(RVMemory<XLEN, XLEN>));
 
-  // Forwarding & hazard detection units
-  SUBCOMPONENT(funit, ForwardingUnit);
-  SUBCOMPONENT(hzunit, HazardUnit);
+  // MODIFIED: Forwarding & hazard detection units
+  SUBCOMPONENT(funit, ForwardingUnit_1S);
+  SUBCOMPONENT(hzunit, HazardUnit_1S);
 
   // Gates
   // True if branch instruction and branch taken
@@ -320,9 +370,9 @@ public:
   // True if branch taken or jump instruction
   SUBCOMPONENT(controlflow_or, TYPE(Or<1, 2>));
   // True if controlflow action or performing syscall finishing
-  SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));
+  //SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));		// MODIFIED
   // True if above or stalling due to load-use hazard
-  SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
+  //SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));	// MODIFIED
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
 
@@ -386,7 +436,7 @@ public:
         }
 
         // Are we currently clearing the pipeline due to a syscall exit?
-        // if such, all stages before the EX stage are invalid
+		// if such, all stages before the EX stage are invalid
         if(stage.index() < EX){
             stageValid &= !ecallChecker->isSysCallExiting();
         }
