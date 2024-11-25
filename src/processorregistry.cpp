@@ -226,10 +226,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S<uint32_t>>(
       ProcessorID::RV32_5S_1S, "5-stage processor (1-slot predict-not-taken)",
-      rv5s_1s_db_desc, layouts, defRegVals));
+      rv5s_1s_desc, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S<uint64_t>>(
       ProcessorID::RV64_5S_1S, "5-stage processor (1-slot predict-not-taken)",
-      rv5s_1s_db_desc, layouts, defRegVals));
+      rv5s_1s_desc, layouts, defRegVals));
 
   // RISC-V 5-stage (1-slot delayed branch)
   layouts = {{"Standard",
