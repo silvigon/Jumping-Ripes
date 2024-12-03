@@ -43,12 +43,23 @@ constexpr const char rv6s_desc[] =
 
 // --- Processor tags --- //
 
-constexpr const ProcessorTags rvss_tags = {};
-constexpr const ProcessorTags rv5s_no_fw_hz_tags = {};
-constexpr const ProcessorTags rv5s_no_fw_tags = {};
-constexpr const ProcessorTags rv5s_no_hz_tags = {};
-constexpr const ProcessorTags rv5s_tags = {};
-constexpr const ProcessorTags rv6s_tags = {};
+constexpr const ProcessorTags rvss_tags = {
+    DatapathType::SS, BranchStrategy::N_A, BranchDelaySlots::NONE,
+    false, false};
+constexpr const ProcessorTags rv5s_no_fw_hz_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO,
+    false, false};
+constexpr const ProcessorTags rv5s_no_fw_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO,
+    false, true};
+constexpr const ProcessorTags rv5s_no_hz_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO,
+    true, false};
+constexpr const ProcessorTags rv5s_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO, true, true};
+constexpr const ProcessorTags rv6s_tags = {
+    DatapathType::P_6SD, BranchStrategy::PNT, BranchDelaySlots::THREE,
+    true, true};
 
 ProcessorRegistry::ProcessorRegistry() {
   // Initialize processors

@@ -61,30 +61,30 @@ struct Layout {
 };
 
 // MODIFIED: Processor tags
+enum DatapathType {
+  SS,   // Single-stage
+  P_5S, // Pipelined, five-stage
+  P_6SD // Pipelined, six-stage, dual-issue
+};
+enum BranchStrategy {
+  N_A, // Not applicable
+  PNT, // Predict not taken
+  DB   // Delayed branch
+};
+enum BranchDelaySlots { NONE, ONE, TWO, THREE };
+
 struct ProcessorTags {
-  enum DatapathType {
-    SS,   // Single-stage
-    P_5S, // Pipelined, five-stage
-    P_6SD // Pipelined, six-stage, dual-issue
-  };
-  enum BranchStrategy {
-    PNT, // Predict not taken
-    DB   // Delayed branch
-  };
-  enum BranchExecutesAt {
-    ID,  // One-slot
-    EX,  // Two-slot
-    MEM, // Three-slot
-  };
-  bool HasForwarding;
-  bool HasHazardDetection;
+  DatapathType datapathType;
+  BranchStrategy branchStrategy;
+  BranchDelaySlots branchDelaySlots;
+  bool hasForwarding;
+  bool hasHazardDetection;
 };
 
 class ProcInfoBase {
 public:
   ProcInfoBase(ProcessorID _id, const QString &_name, const QString &_desc,
-			   const ProcessorTags &_tags,
-               const std::vector<Layout> &_layouts,
+               const ProcessorTags &_tags, const std::vector<Layout> &_layouts,
                const RegisterInitialization &_defaultRegVals = {})
       : id(_id), name(_name), description(_desc), tags(_tags),
         defaultRegisterVals(_defaultRegVals), layouts(_layouts) {}
@@ -92,7 +92,7 @@ public:
   ProcessorID id;
   QString name;
   QString description;
-  ProcessorTags tags;	// MODIFIED
+  ProcessorTags tags; // MODIFIED
   RegisterInitialization defaultRegisterVals;
   std::vector<Layout> layouts;
   virtual ProcessorISAInfo isaInfo() const = 0;
