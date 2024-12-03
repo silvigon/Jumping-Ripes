@@ -60,17 +60,39 @@ struct Layout {
   bool operator==(const Layout &rhs) const { return this->name == rhs.name; }
 };
 
+// MODIFIED: Processor tags
+struct ProcessorTags {
+  enum DatapathType {
+    SS,   // Single-stage
+    P_5S, // Pipelined, five-stage
+    P_6SD // Pipelined, six-stage, dual-issue
+  };
+  enum BranchStrategy {
+    PNT, // Predict not taken
+    DB   // Delayed branch
+  };
+  enum BranchExecutesAt {
+    ID,  // One-slot
+    EX,  // Two-slot
+    MEM, // Three-slot
+  };
+  bool HasForwarding;
+  bool HasHazardDetection;
+};
+
 class ProcInfoBase {
 public:
   ProcInfoBase(ProcessorID _id, const QString &_name, const QString &_desc,
+			   const ProcessorTags &_tags,
                const std::vector<Layout> &_layouts,
                const RegisterInitialization &_defaultRegVals = {})
-      : id(_id), name(_name), description(_desc),
+      : id(_id), name(_name), description(_desc), tags(_tags),
         defaultRegisterVals(_defaultRegVals), layouts(_layouts) {}
   virtual ~ProcInfoBase() = default;
   ProcessorID id;
   QString name;
   QString description;
+  ProcessorTags tags;	// MODIFIED
   RegisterInitialization defaultRegisterVals;
   std::vector<Layout> layouts;
   virtual ProcessorISAInfo isaInfo() const = 0;
