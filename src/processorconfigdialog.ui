@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Ripes::processorConfigDialog</class>
- <widget class="QDialog" name="Ripes::processorConfigDialog">
+ <class>Ripes::ProcessorConfigDialog</class>
+ <widget class="QDialog" name="Ripes::ProcessorConfigDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>680</width>
-    <height>405</height>
+    <width>676</width>
+    <height>397</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,7 @@
         <number>8</number>
        </property>
        <property name="verticalSpacing">
-        <number>8</number>
+        <number>6</number>
        </property>
        <item row="0" column="0">
         <widget class="QLabel" name="isaLabel">
@@ -66,8 +66,14 @@
        </item>
        <item row="0" column="1">
         <layout class="QVBoxLayout" name="isaBox">
+         <property name="spacing">
+          <number>6</number>
+         </property>
          <item>
           <layout class="QHBoxLayout" name="isaBaseBox">
+           <property name="spacing">
+            <number>8</number>
+           </property>
            <item>
             <widget class="QComboBox" name="isa">
              <property name="sizePolicy">
@@ -143,6 +149,9 @@
        </item>
        <item row="2" column="1">
         <layout class="QVBoxLayout" name="datapathBox">
+         <property name="spacing">
+          <number>6</number>
+         </property>
          <item>
           <widget class="QComboBox" name="datapath">
            <property name="sizePolicy">
@@ -209,6 +218,9 @@
        </item>
        <item row="4" column="1">
         <layout class="QHBoxLayout" name="branchesBox">
+         <property name="spacing">
+          <number>8</number>
+         </property>
          <item>
           <widget class="QComboBox" name="branchStrategy">
            <property name="sizePolicy">
@@ -268,7 +280,7 @@
      <item>
       <widget class="QLabel" name="description">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -280,7 +292,7 @@
         </size>
        </property>
        <property name="text">
-        <string>TextLabel</string>
+        <string/>
        </property>
       </widget>
      </item>
@@ -301,7 +313,7 @@
      <item>
       <widget class="Ripes::RegisterInitializationWidget" name="regInitWidget" native="true">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
          <horstretch>0</horstretch>
          <verstretch>2</verstretch>
         </sizepolicy>
@@ -389,7 +401,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Ripes::processorConfigDialog</receiver>
+   <receiver>Ripes::ProcessorConfigDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -405,7 +417,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Ripes::processorConfigDialog</receiver>
+   <receiver>Ripes::ProcessorConfigDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
