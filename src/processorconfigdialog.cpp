@@ -15,76 +15,37 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   m_ui->setupUi(this);
   setWindowTitle("Configure Processor");
 
-  // Initialize top level ISA items
+  // --- Initialize processor options --- //
 
-  // m_ui->processors->setHeaderHidden(true);
-  // std::map<QString, QTreeWidgetItem *> isaFamilyItems;
-  // std::map<QTreeWidgetItem *, std::map<unsigned, QTreeWidgetItem *>>
-  //    isaFamilyRegWidthItems;
-  // for (const auto &isa : ISAFamilyNames) {
-  //   if (isaFamilyItems.count(isa.second) == 0) {
-  //     isaFamilyItems[isa.second] = new QTreeWidgetItem({isa.second});
-  //   }
-  //   auto *isaItem = isaFamilyItems.at(isa.second);
-  //   isaFamilyRegWidthItems[isaItem] = {};
-  //   isaItem->setFlags(isaItem->flags() & ~(Qt::ItemIsSelectable));
-  //   m_ui->processors->insertTopLevelItem(m_ui->processors->topLevelItemCount(),
-  //                                        isaItem);
-  // }
+  QList<ISA> isaList;
+  QList<int> xlenList;
+  QList<DatapathType> datapathList;
 
-  // Initialize processor list
+  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
 
-  QStringList isaList;
-  QStringList xlenList;
-  QStringList datapathList;
-  for (auto &desc : ProcessorRegistry::getAvailableProcessors()) {
-    //   QTreeWidgetItem *processorItem = new
-    //   QTreeWidgetItem({desc.second->name});
-    //   processorItem->setData(ProcessorColumn, Qt::UserRole,
-    //                          QVariant::fromValue(desc.second->id));
-    //   if (desc.second->id == ProcessorHandler::getID()) {
-    //     // Highlight if currently selected processor
-    //     auto font = processorItem->font(ProcessorColumn);
-    //     font.setBold(true);
-    //     processorItem->setFont(ProcessorColumn, font);
-    //     selectedItem = processorItem;
-    //   }
-    const QString &isaFamily =
-        ISAFamilyNames.at(desc.second->isaInfo().isa->isaID());
-    if (isaList.count(isaFamily) == 0)
-      isaList.append(isaFamily);
-
-    QString isaWidth =
-        QString::number(desc.second->isaInfo().isa->bits()) + "-bit";
-    if (xlenList.count(isaWidth) == 0)
+    // Populate ISAs
+    const ISA isaID = desc.second->isaInfo().isa->isaID();
+    const QString &isaFamily = ISAFamilyNames.at(isaID);
+    if (isaList.count(isaID) == 0) {
+      isaList.append(isaID);
+      m_ui->isa->addItem(isaFamily, (int)isaID);
+    }
+    const int isaWidth = desc.second->isaInfo().isa->bits();
+    if (xlenList.count(isaWidth) == 0) {
       xlenList.append(isaWidth);
+      m_ui->xlen->addItem(QString::number(isaWidth) + "-bit", isaWidth);
+    }
 
-    // TEMPORARY
-    const QString &datapathName = desc.second->name;
-    if (datapathList.count(datapathName) == 0)
-      datapathList.append(datapathName);
+    // Populate datapath variants
+    const DatapathType datapath = desc.second->tags.datapathType;
+    const QString datapathName = DatapathNames.at(datapath);
+    if (datapathList.count(datapath) == 0) {
+      datapathList.append(datapath);
+      m_ui->datapath->addItem(datapathName, (int)datapath);
+    }
 
-    // QTreeWidgetItem *familyItem = isaFamilyItems.at(isaFamily);
-    // auto &regWidthItemsForISA = isaFamilyRegWidthItems.at(familyItem);
-    // auto isaRegWidthItem =
-    //     regWidthItemsForISA.find(desc.second->isaInfo().isa->bits());
-    // if (isaRegWidthItem == regWidthItemsForISA.end()) {
-    //  // Create reg width item
-    //  auto *widthItem = new QTreeWidgetItem(
-    //      {QString::number(desc.second->isaInfo().isa->bits()) + "-bit"});
-    //  widthItem->setFlags(widthItem->flags() & ~(Qt::ItemIsSelectable));
-    //  regWidthItemsForISA[desc.second->isaInfo().isa->bits()] = widthItem;
-    //  isaRegWidthItem =
-    //      regWidthItemsForISA.find(desc.second->isaInfo().isa->bits());
-    //  familyItem->insertChild(familyItem->childCount(), widthItem);
-    //}
-    //   isaRegWidthItem->second->insertChild(isaRegWidthItem->second->childCount(),
-    //                                        processorItem);
+    // Populate branch variants
   }
-
-  m_ui->isa->addItems(isaList);
-  m_ui->xlen->addItems(xlenList);
-  m_ui->datapath->addItems(datapathList);
 
   // connect(m_ui->processors, &QTreeWidget::currentItemChanged, this,
   //         &ProcessorConfigDialog::selectionChanged);
@@ -103,21 +64,100 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
     m_selectedExtensionsForID[desc.second->id] =
         desc.second->isaInfo().defaultExtensions;
   }
+
+  // Set properties for current processor
+  m_selectedID = qvariant_cast<ProcessorID>(
+      RipesSettings::value(RIPES_SETTING_PROCESSOR_ID));
+  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
+  m_selectedISA = desc.isaInfo().isa->isaID();
   m_selectedExtensionsForID[ProcessorHandler::getID()] =
       ProcessorHandler::currentISA()->enabledExtensions();
+  m_selectedTags = desc.tags;
 
-  // if (selectedItem != nullptr) {
-  //   // Select the processor and layout which is currently active
-  //   m_ui->processors->setCurrentItem(selectedItem);
-  //   unsigned layoutID =
-  //       RipesSettings::value(RIPES_SETTING_PROCESSOR_LAYOUT_ID).toInt();
-  //   if (layoutID >=
-  //   ProcessorRegistry::getDescription(ProcessorHandler::getID())
-  //                       .layouts.size()) {
-  //     layoutID = 0;
-  //   }
-  //   m_ui->layout->setCurrentIndex(layoutID);
-  // }
+  // Disable options if there are no more available ones for current config
+  populateVariants();
+  setEnabledVariants();
+
+  // ISA
+  m_ui->isa->setCurrentIndex(
+      m_ui->isa->findData((int)desc.isaInfo().isa->isaID()));
+  m_ui->xlen->setCurrentIndex(m_ui->xlen->findData(desc.isaInfo().isa->bits()));
+  // Datapath
+  m_ui->datapath->setCurrentIndex(
+      m_ui->datapath->findData(desc.tags.datapathType));
+  m_ui->hasForwarding->setChecked(desc.tags.hasForwarding);
+  m_ui->hasHazardDetection->setChecked(desc.tags.hasHazardDetection);
+  // Branches
+  m_ui->branchStrategy->setCurrentIndex(
+      m_ui->branchStrategy->findData(desc.tags.branchStrategy));
+  m_ui->branchSlots->setCurrentIndex(
+      m_ui->branchSlots->findData(desc.tags.branchDelaySlots));
+  // Description
+  m_ui->description->setText(desc.description);
+
+  // Set current layout
+  unsigned layoutID =
+      RipesSettings::value(RIPES_SETTING_PROCESSOR_LAYOUT_ID).toInt();
+  if (layoutID >= ProcessorRegistry::getDescription(ProcessorHandler::getID())
+                      .layouts.size()) {
+    layoutID = 0;
+  }
+  m_ui->layout->setCurrentIndex(layoutID);
+
+}
+
+void ProcessorConfigDialog::populateVariants() {
+  QList<BranchStrategy> branchList;
+  QList<BranchDelaySlots> slotsList;
+
+  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
+    if (desc.second->tags.datapathType == m_selectedTags.datapathType) {
+      const BranchStrategy branchStrat = desc.second->tags.branchStrategy;
+      const QString branchName = BranchNames.at(branchStrat);
+      if (branchList.count(branchStrat) == 0) {
+        branchList.append(branchStrat);
+        m_ui->branchStrategy->addItem(branchName, (int)branchStrat);
+      }
+      const BranchDelaySlots branchSlots = desc.second->tags.branchDelaySlots;
+      if (slotsList.count(branchSlots) == 0) {
+        slotsList.append(branchSlots);
+        m_ui->branchSlots->addItem(
+            branchSlots == 0 ? "" : QString::number(branchSlots) + "-slot",
+            (int)branchSlots);
+      }
+    }
+  }
+}
+
+void ProcessorConfigDialog::setEnabledVariants() {
+  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
+  bool forwarding = desc.tags.hasForwarding;
+  bool hazard = desc.tags.hasHazardDetection;
+  BranchStrategy branch = desc.tags.branchStrategy;
+  BranchDelaySlots branchSlots = desc.tags.branchDelaySlots;
+
+  m_ui->hasForwarding->setEnabled(false);
+  m_ui->hasHazardDetection->setEnabled(false);
+  m_ui->branchStrategy->setEnabled(false);
+  m_ui->branchSlots->setEnabled(false);
+
+  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
+    if (desc.second->tags.datapathType == m_selectedTags.datapathType) {
+      if (desc.second->tags.hasForwarding != forwarding)
+        m_ui->hasForwarding->setEnabled(true);
+      if (desc.second->tags.hasHazardDetection != hazard)
+        m_ui->hasHazardDetection->setEnabled(true);
+
+      if (desc.second->tags.hasForwarding == m_selectedTags.hasForwarding &&
+          desc.second->tags.hasHazardDetection ==
+              m_selectedTags.hasHazardDetection) {
+        if (desc.second->tags.branchStrategy != branch)
+          m_ui->branchStrategy->setEnabled(true);
+        if (desc.second->tags.branchDelaySlots != branchSlots)
+          m_ui->branchSlots->setEnabled(true);
+      }
+    }
+  }
 }
 
 RegisterInitialization

@@ -23,14 +23,18 @@ public:
   const Layout *getSelectedLayout() const;
   QStringList getEnabledExtensions() const;
 
+  void populateVariants();
+  void setEnabledVariants();
+
 private slots:
-  //void selectionChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+  // void selectionChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
 
 private:
-  //bool isCPUItem(const QTreeWidgetItem *item) const;
-
-  enum ProcessorTreeColums { ProcessorColumn, ColumnCount };
+  // bool isCPUItem(const QTreeWidgetItem *item) const;
+  // enum ProcessorTreeColums { ProcessorColumn, ColumnCount };
   ProcessorID m_selectedID;
+  ISA m_selectedISA;
+  ProcessorTags m_selectedTags;
   Ui::ProcessorConfigDialog *m_ui;
   std::map<ProcessorID, QStringList> m_selectedExtensionsForID;
 };
