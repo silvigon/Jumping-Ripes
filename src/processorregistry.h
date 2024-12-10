@@ -61,16 +61,18 @@ struct Layout {
 };
 
 // MODIFIED: Processor tags
-enum DatapathType {
-  SS,   // Single-stage
-  P_5S, // Pipelined, five-stage
-  P_6SD // Pipelined, six-stage, dual-issue
-};
-enum BranchStrategy {
-  N_A, // Not applicable
-  PNT, // Predict not taken
-  DB   // Delayed branch
-};
+enum DatapathType { SS, P_5S, P_6SD };
+const static std::map<DatapathType, QString> DatapathNames = {
+    {DatapathType::SS, "Single-stage"},
+    {DatapathType::P_5S, "Five-stage"},
+    {DatapathType::P_6SD, "Six-stage dual-issue"}};
+
+enum BranchStrategy { N_A, PNT, DB };
+const static std::map<BranchStrategy, QString> BranchNames = {
+    {BranchStrategy::N_A, "Not applicable"},
+    {BranchStrategy::PNT, "Predict not taken"},
+    {BranchStrategy::DB, "Delayed branch"}};
+
 enum BranchDelaySlots { NONE, ONE, TWO, THREE };
 
 struct ProcessorTags {
