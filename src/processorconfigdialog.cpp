@@ -66,11 +66,30 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   // Set properties for current processor
   m_selectedID = qvariant_cast<ProcessorID>(
       RipesSettings::value(RIPES_SETTING_PROCESSOR_ID));
+
   const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
   m_selectedISA = desc.isaInfo().isa->isaID();
   m_selectedExtensionsForID[ProcessorHandler::getID()] =
       ProcessorHandler::currentISA()->enabledExtensions();
   m_selectedTags = desc.tags;
+
+  // Populate processor extensions
+  auto isaInfo = desc.isaInfo();
+  for (const auto &ext : std::as_const(isaInfo.supportedExtensions)) {
+    auto chkbox = new QCheckBox(ext);
+    chkbox->setToolTip(isaInfo.isa->extensionDescription(ext));
+    m_ui->extensions->addWidget(chkbox);
+    if (m_selectedExtensionsForID[desc.id].contains(ext)) {
+      chkbox->setChecked(true);
+    }
+    connect(chkbox, &QCheckBox::toggled, this, [=](bool toggled) {
+      if (toggled) {
+        m_selectedExtensionsForID[m_selectedID] << ext;
+      } else {
+        m_selectedExtensionsForID[m_selectedID].removeAll(ext);
+      }
+    });
+  }
 
   // Disable options if there are no more available ones for current config
   populateVariants();
