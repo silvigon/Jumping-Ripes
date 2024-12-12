@@ -16,7 +16,17 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   m_ui->setupUi(this);
   setWindowTitle("Configure Processor");
 
-  // --- Initialize processor options --- //
+  // Set properties for current processor
+  m_selectedID = qvariant_cast<ProcessorID>(
+      RipesSettings::value(RIPES_SETTING_PROCESSOR_ID));
+  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
+
+  m_selectedISA = desc.isaInfo().isa->isaID();
+  m_selectedExtensionsForID[ProcessorHandler::getID()] =
+      ProcessorHandler::currentISA()->enabledExtensions();
+  m_selectedTags = desc.tags;
+
+  // --- Populating processor options --- //
 
   QStringList isaList;
   QList<int> xlenList;
@@ -43,35 +53,11 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
       datapathList.append(datapath);
       m_ui->datapath->addItem(datapathName, (int)datapath);
     }
-  }
 
-  // connect(m_ui->processors, &QTreeWidget::currentItemChanged, this,
-  //         &ProcessorConfigDialog::selectionChanged);
-  // connect(m_ui->processors, &QTreeWidget::itemDoubleClicked, this,
-  //         [=](const QTreeWidgetItem *item) {
-  //           if (isCPUItem(item)) {
-  //             accept();
-  //           }
-  //         });
-
-  connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-  connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-
-  // Initialize extensions for processors; default to all available extensions
-  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
+    // Initialize selected extensions for processors while we're here
     m_selectedExtensionsForID[desc.second->id] =
         desc.second->isaInfo().defaultExtensions;
   }
-
-  // Set properties for current processor
-  m_selectedID = qvariant_cast<ProcessorID>(
-      RipesSettings::value(RIPES_SETTING_PROCESSOR_ID));
-
-  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
-  m_selectedISA = desc.isaInfo().isa->isaID();
-  m_selectedExtensionsForID[ProcessorHandler::getID()] =
-      ProcessorHandler::currentISA()->enabledExtensions();
-  m_selectedTags = desc.tags;
 
   // Populate processor extensions
   auto isaInfo = desc.isaInfo();
@@ -91,9 +77,15 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
     });
   }
 
-  // Disable options if there are no more available ones for current config
+  // Populate processor variant options
   populateVariants();
-  setEnabledVariants();
+
+  // Populate processor layouts
+  for (const auto &layout : desc.layouts) {
+    m_ui->layout->addItem(layout.name);
+  }
+
+  // --- Setting initial form state --- //
 
   // ISA
   m_ui->isa->setCurrentIndex(
@@ -112,6 +104,9 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   // Description
   m_ui->description->setText(desc.description);
 
+  // Disable options if there are no more available ones for current config
+  setEnabledVariants();
+
   // Set current layout
   unsigned layoutID =
       RipesSettings::value(RIPES_SETTING_PROCESSOR_LAYOUT_ID).toInt();
@@ -120,6 +115,17 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
     layoutID = 0;
   }
   m_ui->layout->setCurrentIndex(layoutID);
+
+  // connect(m_ui->processors, &QTreeWidget::currentItemChanged, this,
+  //         &ProcessorConfigDialog::selectionChanged);
+  // connect(m_ui->processors, &QTreeWidget::itemDoubleClicked, this,
+  //         [=](const QTreeWidgetItem *item) {
+  //           if (isCPUItem(item)) {
+  //             accept();
+  //           }
+  //         });
+  connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+  connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
 }
 
