@@ -12,22 +12,22 @@ namespace Ripes {
 
 ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
     : QDialog(parent), m_ui(new Ui::ProcessorConfigDialog) {
+
   m_ui->setupUi(this);
   setWindowTitle("Configure Processor");
 
   // --- Initialize processor options --- //
 
-  QList<ISA> isaList;
+  QStringList isaList;
   QList<int> xlenList;
   QList<DatapathType> datapathList;
 
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
-
     // Populate ISAs
     const ISA isaID = desc.second->isaInfo().isa->isaID();
     const QString &isaFamily = ISAFamilyNames.at(isaID);
-    if (isaList.count(isaID) == 0) {
-      isaList.append(isaID);
+    if (isaList.count(isaFamily) == 0) {
+      isaList.append(isaFamily);
       m_ui->isa->addItem(isaFamily, (int)isaID);
     }
     const int isaWidth = desc.second->isaInfo().isa->bits();
@@ -36,15 +36,13 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
       m_ui->xlen->addItem(QString::number(isaWidth) + "-bit", isaWidth);
     }
 
-    // Populate datapath variants
+    // Populate main datapath variants
     const DatapathType datapath = desc.second->tags.datapathType;
     const QString datapathName = DatapathNames.at(datapath);
     if (datapathList.count(datapath) == 0) {
       datapathList.append(datapath);
       m_ui->datapath->addItem(datapathName, (int)datapath);
     }
-
-    // Populate branch variants
   }
 
   // connect(m_ui->processors, &QTreeWidget::currentItemChanged, this,
