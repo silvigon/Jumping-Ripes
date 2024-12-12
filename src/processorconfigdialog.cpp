@@ -68,6 +68,7 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
     if (m_selectedExtensionsForID[desc.id].contains(ext)) {
       chkbox->setChecked(true);
     }
+    // Connect checkbox toggle events
     connect(chkbox, &QCheckBox::toggled, this, [=](bool toggled) {
       if (toggled) {
         m_selectedExtensionsForID[m_selectedID] << ext;
@@ -119,14 +120,22 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   }
   m_ui->layout->setCurrentIndex(layoutID);
 
-  // connect(m_ui->processors, &QTreeWidget::currentItemChanged, this,
-  //         &ProcessorConfigDialog::selectionChanged);
-  // connect(m_ui->processors, &QTreeWidget::itemDoubleClicked, this,
-  //         [=](const QTreeWidgetItem *item) {
-  //           if (isCPUItem(item)) {
-  //             accept();
-  //           }
-  //         });
+  // there has to be a less verbose way to do this
+  connect(m_ui->isa, &QComboBox::currentIndexChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->xlen, &QComboBox::currentIndexChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->datapath, &QComboBox::currentIndexChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->branchStrategy, &QComboBox::currentIndexChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->branchSlots, &QComboBox::currentIndexChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->hasForwarding, &QCheckBox::checkStateChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+  connect(m_ui->hasHazardDetection, &QCheckBox::checkStateChanged, this,
+          &ProcessorConfigDialog::selectionChanged);
+
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
@@ -196,75 +205,110 @@ QStringList ProcessorConfigDialog::getEnabledExtensions() const {
   return m_selectedExtensionsForID.at(m_selectedID);
 }
 
-// bool ProcessorConfigDialog::isCPUItem(const QTreeWidgetItem *item) const {
-//   if (!item) {
-//     return false;
-//   }
-//   QVariant selectedItemData = item->data(ProcessorColumn, Qt::UserRole);
-//   const bool validSelection = selectedItemData.canConvert<ProcessorID>();
-//   return validSelection;
-// }
+ProcessorID *ProcessorConfigDialog::getSelectedProcessor() const {
+  ProcessorID *newID = nullptr;
 
-// void ProcessorConfigDialog::selectionChanged(QTreeWidgetItem *current,
-//                                                 QTreeWidgetItem *) {
-//   if (current == nullptr) {
-//     return;
-//   }
-//
-//   const bool validSelection = isCPUItem(current);
-//   m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(validSelection);
-//   if (!validSelection) {
-//     // Something which is not a processor was selected (ie. an ISA). Disable
-//     OK
-//     // button
-//     return;
-//   }
-//
-//   const ProcessorID id =
-//       qvariant_cast<ProcessorID>(current->data(ProcessorColumn,
-//       Qt::UserRole));
-//   const auto &desc = ProcessorRegistry::getAvailableProcessors().at(id);
-//   auto isaInfo = desc->isaInfo();
-//
-//   // Update information widgets with the current processor info
-//   m_selectedID = id;
-//   m_ui->name->setText(desc->name);
-//   m_ui->ISA->setText(isaInfo.isa->name());
-//   m_ui->description->clear();
-//   m_ui->description->appendHtml(desc->description);
-//   m_ui->description->moveCursor(QTextCursor::Start);
-//   m_ui->description->ensureCursorVisible();
-//   m_ui->regInitWidget->processorSelectionChanged(id);
-//
-//   m_ui->layout->clear();
-//   for (const auto &layout : desc->layouts) {
-//     m_ui->layout->addItem(layout.name);
-//   }
-//
-//   // Setup extensions; Clear previously selected extensions and add whatever
-//   // extensions are supported for the selected processor
-//   QLayoutItem *item;
-//   while ((item = m_ui->extensions->layout()->takeAt(0)) != nullptr) {
-//     delete item->widget();
-//     delete item;
-//   }
-//
-//   for (const auto &ext : std::as_const(isaInfo.supportedExtensions)) {
-//     auto chkbox = new QCheckBox(ext);
-//     chkbox->setToolTip(isaInfo.isa->extensionDescription(ext));
-//     m_ui->extensions->addWidget(chkbox);
-//     if (m_selectedExtensionsForID[desc->id].contains(ext)) {
-//       chkbox->setChecked(true);
-//     }
-//     connect(chkbox, &QCheckBox::toggled, this, [=](bool toggled) {
-//       if (toggled) {
-//         m_selectedExtensionsForID[id] << ext;
-//       } else {
-//         m_selectedExtensionsForID[id].removeAll(ext);
-//       }
-//     });
-//   }
-// }
+  // aaa this feels like such a hack
+  ISA newISA =
+      (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
+
+	printf("DEBUG: getting new processor...\n");
+
+  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
+
+		printf("       - trying id %d\n", desc.second->id);
+
+    if (newISA == desc.second->isaInfo().isa->isaID() &&
+        m_ui->datapath->currentData() == desc.second->tags.datapathType &&
+        m_ui->branchStrategy->currentData() ==
+            desc.second->tags.branchStrategy &&
+        m_ui->branchSlots->currentData() ==
+            desc.second->tags.branchDelaySlots &&
+        m_ui->hasForwarding->isChecked() == desc.second->tags.hasForwarding &&
+        m_ui->hasHazardDetection->isChecked() ==
+            desc.second->tags.hasHazardDetection) {
+      *newID = desc.second->id;
+    }
+  }
+
+	printf("DEBUG: got processor %d with ISA %d\n", *newID, newISA);
+
+  return newID;
+}
+
+void ProcessorConfigDialog::selectionChanged() {
+  // Check valid selection and update selected processor
+  const ProcessorID *newID = getSelectedProcessor();
+  m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(newID);
+  if (newID == nullptr) {
+    m_ui->description->setText(
+        "Your selection does not correspond to any available processor.");
+    m_ui->description->setEnabled(false);
+    return;
+  }
+
+  m_selectedID = *newID;
+  m_selectedISA = // hacky hack again
+      (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
+  m_selectedTags.datapathType =
+      m_ui->datapath->currentData().value<DatapathType>();
+  m_selectedTags.branchStrategy =
+      m_ui->branchStrategy->currentData().value<BranchStrategy>();
+  m_selectedTags.branchDelaySlots =
+      m_ui->branchSlots->currentData().value<BranchDelaySlots>();
+  m_selectedTags.hasForwarding = m_ui->hasForwarding->isChecked();
+  m_selectedTags.hasForwarding = m_ui->hasHazardDetection->isChecked();
+
+  // --- Update dialog state --- //
+  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
+
+  // Setup extensions; Clear previously selected extensions and add whatever
+  // extensions are supported for the selected processor
+  QLayoutItem *item;
+  while ((item = m_ui->extensions->layout()->takeAt(0)) != nullptr) {
+    delete item->widget();
+    delete item;
+  }
+
+  auto isaInfo = desc.isaInfo();
+  for (const auto &ext : std::as_const(isaInfo.supportedExtensions)) {
+    auto chkbox = new QCheckBox(ext);
+    chkbox->setToolTip(isaInfo.isa->extensionDescription(ext));
+    m_ui->extensions->addWidget(chkbox);
+    if (m_selectedExtensionsForID[desc.id].contains(ext)) {
+      chkbox->setChecked(true);
+    }
+    connect(chkbox, &QCheckBox::toggled, this, [=](bool toggled) {
+      if (toggled) {
+        m_selectedExtensionsForID[m_selectedID] << ext;
+      } else {
+        m_selectedExtensionsForID[m_selectedID].removeAll(ext);
+      }
+    });
+  }
+
+  // Regenerate available processor variants
+  m_ui->branchStrategy->clear();
+  m_ui->branchStrategy->setCurrentIndex(
+      m_ui->branchStrategy->findData(desc.tags.branchStrategy));
+  m_ui->branchSlots->clear();
+  m_ui->branchSlots->setCurrentIndex(
+      m_ui->branchSlots->findData(desc.tags.branchDelaySlots));
+  populateVariants();
+  setEnabledVariants();
+
+  // Set description
+  m_ui->description->setText(desc.description);
+
+  // Regenerate register initialisations
+  m_ui->regInitWidget->processorSelectionChanged(m_selectedID);
+
+  // Regenerate available layouts
+  m_ui->layout->clear();
+  for (const auto &layout : desc.layouts) {
+    m_ui->layout->addItem(layout.name);
+  }
+}
 
 const Layout *ProcessorConfigDialog::getSelectedLayout() const {
   const auto &desc =

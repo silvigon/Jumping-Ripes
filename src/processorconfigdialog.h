@@ -27,11 +27,10 @@ public:
   void setEnabledVariants();
 
 private slots:
-  // void selectionChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+  void selectionChanged();
 
 private:
-  // bool isCPUItem(const QTreeWidgetItem *item) const;
-  // enum ProcessorTreeColums { ProcessorColumn, ColumnCount };
+  ProcessorID *getSelectedProcessor() const;
   ProcessorID m_selectedID;
   ISA m_selectedISA;
   ProcessorTags m_selectedTags;
