@@ -3,6 +3,7 @@
 
 #include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QTimer>
 
 #include "processorhandler.h"
 #include "radix.h"
@@ -120,21 +121,11 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   }
   m_ui->layout->setCurrentIndex(layoutID);
 
-  // there has to be a less verbose way to do this
-  connect(m_ui->isa, &QComboBox::currentIndexChanged, this,
+  // Poll form state every 50 ms
+  QTimer *timer = new QTimer(this);
+  connect(timer, &QTimer::timeout, this,
           &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->xlen, &QComboBox::currentIndexChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->datapath, &QComboBox::currentIndexChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->branchStrategy, &QComboBox::currentIndexChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->branchSlots, &QComboBox::currentIndexChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->hasForwarding, &QCheckBox::checkStateChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
-  connect(m_ui->hasHazardDetection, &QCheckBox::checkStateChanged, this,
-          &ProcessorConfigDialog::selectionChanged);
+  timer->start(50);
 
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -208,30 +199,28 @@ QStringList ProcessorConfigDialog::getEnabledExtensions() const {
 ProcessorID *ProcessorConfigDialog::getSelectedProcessor() const {
   ProcessorID *newID = nullptr;
 
+  // Wait if variants are regenerating
+  if (!m_ui->branchSlots->count() || !m_ui->branchStrategy->count())
+    return newID;
+
   // aaa this feels like such a hack
   ISA newISA =
       (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
 
-	printf("DEBUG: getting new processor...\n");
-
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
-
-		printf("       - trying id %d\n", desc.second->id);
-
     if (newISA == desc.second->isaInfo().isa->isaID() &&
         m_ui->datapath->currentData() == desc.second->tags.datapathType &&
+        m_ui->hasForwarding->isChecked() == desc.second->tags.hasForwarding &&
+        m_ui->hasHazardDetection->isChecked() ==
+            desc.second->tags.hasHazardDetection &&
         m_ui->branchStrategy->currentData() ==
             desc.second->tags.branchStrategy &&
         m_ui->branchSlots->currentData() ==
-            desc.second->tags.branchDelaySlots &&
-        m_ui->hasForwarding->isChecked() == desc.second->tags.hasForwarding &&
-        m_ui->hasHazardDetection->isChecked() ==
-            desc.second->tags.hasHazardDetection) {
-      *newID = desc.second->id;
+            desc.second->tags.branchDelaySlots) {
+      newID = new ProcessorID(desc.second->id);
+      break;
     }
   }
-
-	printf("DEBUG: got processor %d with ISA %d\n", *newID, newISA);
 
   return newID;
 }
@@ -247,6 +236,9 @@ void ProcessorConfigDialog::selectionChanged() {
     return;
   }
 
+  if (*newID == m_selectedID)
+    return;
+
   m_selectedID = *newID;
   m_selectedISA = // hacky hack again
       (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
@@ -260,6 +252,7 @@ void ProcessorConfigDialog::selectionChanged() {
   m_selectedTags.hasForwarding = m_ui->hasHazardDetection->isChecked();
 
   // --- Update dialog state --- //
+  m_ui->description->setEnabled(true);
   const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
 
   // Setup extensions; Clear previously selected extensions and add whatever
@@ -289,12 +282,12 @@ void ProcessorConfigDialog::selectionChanged() {
 
   // Regenerate available processor variants
   m_ui->branchStrategy->clear();
+  m_ui->branchSlots->clear();
+  populateVariants();
   m_ui->branchStrategy->setCurrentIndex(
       m_ui->branchStrategy->findData(desc.tags.branchStrategy));
-  m_ui->branchSlots->clear();
   m_ui->branchSlots->setCurrentIndex(
       m_ui->branchSlots->findData(desc.tags.branchDelaySlots));
-  populateVariants();
   setEnabledVariants();
 
   // Set description
