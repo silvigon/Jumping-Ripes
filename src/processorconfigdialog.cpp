@@ -80,6 +80,9 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   // Populate processor variant options
   populateVariants();
 
+  // Populate register initialisations
+  m_ui->regInitWidget->processorSelectionChanged(m_selectedID);
+
   // Populate processor layouts
   for (const auto &layout : desc.layouts) {
     m_ui->layout->addItem(layout.name);
@@ -126,7 +129,6 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   //         });
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-
 }
 
 void ProcessorConfigDialog::populateVariants() {
