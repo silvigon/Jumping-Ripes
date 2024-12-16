@@ -198,6 +198,7 @@ QStringList ProcessorConfigDialog::getEnabledExtensions() const {
 
 QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   QList<ProcessorID> selected = {};
+  QList<ProcessorID> availableOptions = {};
 
   // Wait if variants are regenerating
   if (!m_ui->branchSlots->count() || !m_ui->branchStrategy->count())
@@ -207,20 +208,75 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   ISA newISA =
       (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
 
+  // ~~~ please forgive the following spaghetti ~~~ //
+
+  // Explore ISAs
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
-    if (newISA == desc.second->isaInfo().isa->isaID() &&
-        m_ui->datapath->currentData() == desc.second->tags.datapathType &&
-        m_ui->hasForwarding->isChecked() == desc.second->tags.hasForwarding &&
-        m_ui->hasHazardDetection->isChecked() ==
-            desc.second->tags.hasHazardDetection &&
-        m_ui->branchStrategy->currentData() ==
-            desc.second->tags.branchStrategy &&
-        m_ui->branchSlots->currentData() ==
-            desc.second->tags.branchDelaySlots) {
-      selected.append(desc.second->id);
-      break;
-    }
+    if (newISA == desc.second->isaInfo().isa->isaID())
+      availableOptions.append(desc.first);
   }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore datapaths
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (m_ui->datapath->currentData() == desc.tags.datapathType)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore forwarding/hazard detection
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (m_ui->hasForwarding->isChecked() == desc.tags.hasForwarding)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (m_ui->hasHazardDetection->isChecked() == desc.tags.hasHazardDetection)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore branch options
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (m_ui->branchStrategy->currentData() == desc.tags.branchStrategy)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (m_ui->branchSlots->currentData() == desc.tags.branchDelaySlots)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
 
   return selected;
 }
