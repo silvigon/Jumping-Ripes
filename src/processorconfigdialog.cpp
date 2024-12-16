@@ -92,10 +92,10 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
 
   // --- Setting initial form state --- //
 
-  // ISA
-  m_ui->isa->setCurrentIndex(
-      m_ui->isa->findData((int)desc.isaInfo().isa->isaID()));
+  // ISA -- adjust for isa selection hack
   m_ui->xlen->setCurrentIndex(m_ui->xlen->findData(desc.isaInfo().isa->bits()));
+  m_ui->isa->setCurrentIndex(m_ui->isa->findData(
+      (int)desc.isaInfo().isa->isaID() - m_ui->xlen->currentIndex()));
   // Datapath
   m_ui->datapath->setCurrentIndex(
       m_ui->datapath->findData(desc.tags.datapathType));
@@ -237,8 +237,6 @@ void ProcessorConfigDialog::selectionChanged() {
     return;
   }
 
-  if (selected[0] == m_selectedID)
-    return;
   m_selectedID = selected[0];
   const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
 
