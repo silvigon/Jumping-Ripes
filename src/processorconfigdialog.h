@@ -30,7 +30,7 @@ private slots:
   void selectionChanged();
 
 private:
-  ProcessorID *getSelectedProcessor() const;
+  QList<ProcessorID> getSelectedProcessors() const;
   ProcessorID m_selectedID;
   ISA m_selectedISA;
   ProcessorTags m_selectedTags;

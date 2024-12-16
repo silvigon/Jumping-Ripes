@@ -196,12 +196,12 @@ QStringList ProcessorConfigDialog::getEnabledExtensions() const {
   return m_selectedExtensionsForID.at(m_selectedID);
 }
 
-ProcessorID *ProcessorConfigDialog::getSelectedProcessor() const {
-  ProcessorID *newID = nullptr;
+QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
+  QList<ProcessorID> selected = {};
 
   // Wait if variants are regenerating
   if (!m_ui->branchSlots->count() || !m_ui->branchStrategy->count())
-    return newID;
+    return selected;
 
   // aaa this feels like such a hack
   ISA newISA =
@@ -217,43 +217,40 @@ ProcessorID *ProcessorConfigDialog::getSelectedProcessor() const {
             desc.second->tags.branchStrategy &&
         m_ui->branchSlots->currentData() ==
             desc.second->tags.branchDelaySlots) {
-      newID = new ProcessorID(desc.second->id);
+      selected.append(desc.second->id);
       break;
     }
   }
 
-  return newID;
+  return selected;
 }
 
 void ProcessorConfigDialog::selectionChanged() {
   // Check valid selection and update selected processor
-  const ProcessorID *newID = getSelectedProcessor();
-  m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(newID);
-  if (newID == nullptr) {
+  const QList<ProcessorID> selected = getSelectedProcessors();
+  m_ui->buttonBox->button(QDialogButtonBox::Ok)
+      ->setEnabled(!selected.isEmpty());
+  if (selected.isEmpty()) {
     m_ui->description->setText(
         "Your selection does not correspond to any available processor.");
     m_ui->description->setEnabled(false);
     return;
   }
 
-  if (*newID == m_selectedID)
+  if (selected[0] == m_selectedID)
     return;
+  m_selectedID = selected[0];
+  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
 
-  m_selectedID = *newID;
-  m_selectedISA = // hacky hack again
-      (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
-  m_selectedTags.datapathType =
-      m_ui->datapath->currentData().value<DatapathType>();
-  m_selectedTags.branchStrategy =
-      m_ui->branchStrategy->currentData().value<BranchStrategy>();
-  m_selectedTags.branchDelaySlots =
-      m_ui->branchSlots->currentData().value<BranchDelaySlots>();
-  m_selectedTags.hasForwarding = m_ui->hasForwarding->isChecked();
-  m_selectedTags.hasForwarding = m_ui->hasHazardDetection->isChecked();
+  m_selectedISA = desc.isaInfo().isa->isaID();
+  m_selectedTags.datapathType = desc.tags.datapathType;
+  m_selectedTags.branchStrategy = desc.tags.branchStrategy;
+  m_selectedTags.branchDelaySlots = desc.tags.branchDelaySlots;
+  m_selectedTags.hasForwarding = desc.tags.hasForwarding;
+  m_selectedTags.hasForwarding = desc.tags.hasHazardDetection;
 
   // --- Update dialog state --- //
   m_ui->description->setEnabled(true);
-  const auto &desc = ProcessorRegistry::getDescription(m_selectedID);
 
   // Setup extensions; Clear previously selected extensions and add whatever
   // extensions are supported for the selected processor
