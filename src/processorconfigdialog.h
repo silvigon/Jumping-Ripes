@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QDialog>
-#include <QTreeWidget>
 
 #include "processorregistry.h"
 
@@ -26,14 +25,18 @@ public:
   void populateVariants();
   void setEnabledVariants();
 
+signals:
+  void selectionChanged() const;
+
 private slots:
-  void selectionChanged();
+  void getSelectedProcessors();
+  void updateDialog();
 
 private:
-  QList<ProcessorID> getSelectedProcessors() const;
-  ProcessorID m_selectedID;
   ISA m_selectedISA;
+  ProcessorID m_selectedID;
   ProcessorTags m_selectedTags;
+  QList<ProcessorID> m_selectableIDs;
   Ui::ProcessorConfigDialog *m_ui;
   std::map<ProcessorID, QStringList> m_selectedExtensionsForID;
 };

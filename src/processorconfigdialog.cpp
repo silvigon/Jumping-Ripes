@@ -124,8 +124,12 @@ ProcessorConfigDialog::ProcessorConfigDialog(QWidget *parent)
   // Poll form state every 50 ms
   QTimer *timer = new QTimer(this);
   connect(timer, &QTimer::timeout, this,
-          &ProcessorConfigDialog::selectionChanged);
+          &ProcessorConfigDialog::getSelectedProcessors);
   timer->start(50);
+
+  // If the processor selection changes, update the dialog state
+  connect(this, &ProcessorConfigDialog::selectionChanged, this,
+          &ProcessorConfigDialog::updateDialog);
 
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -196,13 +200,13 @@ QStringList ProcessorConfigDialog::getEnabledExtensions() const {
   return m_selectedExtensionsForID.at(m_selectedID);
 }
 
-QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
+void ProcessorConfigDialog::getSelectedProcessors() {
   QList<ProcessorID> selected = {};
   QList<ProcessorID> availableOptions = {};
 
   // Wait if variants are regenerating
   if (!m_ui->branchSlots->count() || !m_ui->branchStrategy->count())
-    return selected;
+    return;
 
   // aaa this feels like such a hack
   ISA newISA =
@@ -217,8 +221,11 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
   // Explore datapaths
   availableOptions = {};
@@ -229,8 +236,11 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
   // Explore forwarding/hazard detection
   availableOptions = {};
@@ -241,8 +251,11 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
   availableOptions = {};
   for (auto id : selected) {
@@ -252,8 +265,11 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
   // Explore branch options
   availableOptions = {};
@@ -264,8 +280,11 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
   availableOptions = {};
   for (auto id : selected) {
@@ -275,15 +294,23 @@ QList<ProcessorID> ProcessorConfigDialog::getSelectedProcessors() const {
   }
   if (!availableOptions.isEmpty())
     selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
+  if (selected.size() == 1 && selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+    return;
+  }
 
-  return selected;
+  if (selected != m_selectableIDs) {
+    m_selectableIDs = selected;
+    emit selectionChanged();
+  }
+  return;
 }
 
-void ProcessorConfigDialog::selectionChanged() {
+void ProcessorConfigDialog::updateDialog() {
+  const QList<ProcessorID> selected = m_selectableIDs;
+
   // Check valid selection and update selected processor
-  const QList<ProcessorID> selected = getSelectedProcessors();
   m_ui->buttonBox->button(QDialogButtonBox::Ok)
       ->setEnabled(!selected.isEmpty());
   if (selected.isEmpty()) {
@@ -332,6 +359,9 @@ void ProcessorConfigDialog::selectionChanged() {
   }
 
   // Regenerate available processor variants
+  m_ui->hasForwarding->setChecked(desc.tags.hasForwarding);
+  m_ui->hasHazardDetection->setChecked(desc.tags.hasHazardDetection);
+
   m_ui->branchStrategy->clear();
   m_ui->branchSlots->clear();
   populateVariants();
