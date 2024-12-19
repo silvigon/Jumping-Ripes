@@ -81,6 +81,16 @@ struct ProcessorTags {
   BranchDelaySlots branchDelaySlots;
   bool hasForwarding;
   bool hasHazardDetection;
+
+  bool operator==(const ProcessorTags &tags) const {
+    return datapathType == tags.datapathType &&
+           branchStrategy == tags.branchStrategy &&
+           branchDelaySlots == tags.branchDelaySlots &&
+           hasForwarding == tags.hasForwarding &&
+           hasHazardDetection == tags.hasHazardDetection;
+  }
+
+  bool operator!=(const ProcessorTags &tags) const { return !(*this == tags); }
 };
 
 class ProcInfoBase {
