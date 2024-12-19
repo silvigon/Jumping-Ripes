@@ -17,26 +17,27 @@ public:
   explicit ProcessorConfigDialog(QWidget *parent = nullptr);
   ~ProcessorConfigDialog();
 
-  ProcessorID getSelectedId() const { return m_selectedID; }
-  RegisterInitialization getRegisterInitialization() const;
-  const Layout *getSelectedLayout() const;
   QStringList getEnabledExtensions() const;
+  RegisterInitialization getRegisterInitialization() const;
+  QList<ProcessorID> getSelectedProcessor(ISA isa, ProcessorTags tags);
+  const Layout *getSelectedLayout() const;
 
+  ProcessorID getSelectedId() const { return m_selectedID; }
+
+signals:
+  void selectionChanged(ISA isa, ProcessorTags tags) const;
+
+private slots:
+  void updateSelectedTags();
+  void updateDialog(ISA isa, ProcessorTags tags);
+
+private:
   void populateVariants();
   void setEnabledVariants();
 
-signals:
-  void selectionChanged() const;
-
-private slots:
-  void getSelectedProcessors();
-  void updateDialog();
-
-private:
   ISA m_selectedISA;
   ProcessorID m_selectedID;
   ProcessorTags m_selectedTags;
-  QList<ProcessorID> m_selectableIDs;
   Ui::ProcessorConfigDialog *m_ui;
   std::map<ProcessorID, QStringList> m_selectedExtensionsForID;
 };
