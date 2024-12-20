@@ -147,7 +147,7 @@ ProcessorConfigDialog::getRegisterInitialization() const {
 }
 
 QList<ProcessorID>
-ProcessorConfigDialog::getSelectedProcessor(ISA isa, ProcessorTags tags) {
+ProcessorConfigDialog::getSelectedProcessor(ISA isa, ProcessorTags tags) const {
   QList<ProcessorID> ids = {};
 
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
@@ -170,7 +170,8 @@ const Layout *ProcessorConfigDialog::getSelectedLayout() const {
 }
 
 void ProcessorConfigDialog::updateSelectedTags() {
-  ISA selectedISA = m_ui->isa->currentData().value<ISA>();
+  ISA selectedISA = // hacky hack
+      (ISA)(m_ui->isa->currentData().toInt() + m_ui->xlen->currentIndex());
   DatapathType selectedDatapath =
       m_ui->datapath->currentData().value<DatapathType>();
   BranchStrategy selectedStrat =
@@ -187,35 +188,14 @@ void ProcessorConfigDialog::updateSelectedTags() {
       m_selectedISA = selectedISA;
       m_selectedTags = selectedTags;
     }
-    // Else, ignore tags in this order until one is found, then return its tags:
-    //   Hazard detection/forwarding -> Delay slots -> Branch Strategy ->
-    //   -> Datapath -> ISA
+    // Otherwise, redirect to the closest valid processor
     else {
-      // oh boy
-      do {
-        for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
-          if (desc.second->isaInfo().isa->isaID() == selectedISA) {
-            if (desc.second->tags.datapathType == selectedDatapath) {
-              if (desc.second->tags.branchStrategy == selectedStrat) {
-                if (desc.second->tags.branchDelaySlots == selectedSlots) {
-                  selectedISA = desc.second->isaInfo().isa->isaID();
-                  selectedTags = desc.second->tags;
-                  break;
-                }
-                selectedISA = desc.second->isaInfo().isa->isaID();
-                selectedTags = desc.second->tags;
-                break;
-              }
-              selectedISA = desc.second->isaInfo().isa->isaID();
-              selectedTags = desc.second->tags;
-              break;
-            }
-            selectedISA = desc.second->isaInfo().isa->isaID();
-            selectedTags = desc.second->tags;
-            break;
-          }
-        }
-      } while (getSelectedProcessor(selectedISA, selectedTags).size() < 1);
+      const auto &desc = ProcessorRegistry::getDescription(
+          redirectToValidProcessor(selectedISA, selectedTags)[0]);
+      selectedISA = desc.isaInfo().isa->isaID();
+      selectedTags = desc.tags;
+      m_selectedISA = selectedISA;
+      m_selectedTags = selectedTags;
     }
 
     emit selectionChanged(selectedISA, selectedTags);
@@ -354,6 +334,84 @@ void ProcessorConfigDialog::setEnabledVariants() {
       }
     }
   }
+}
+
+QList<ProcessorID>
+ProcessorConfigDialog::redirectToValidProcessor(ISA isa, ProcessorTags tags) {
+  QList<ProcessorID> selected = {};
+  QList<ProcessorID> availableOptions = {};
+
+  // ~~~ spaghetti time ~~~ //
+
+  // Explore ISAs
+  for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
+    if (isa == desc.second->isaInfo().isa->isaID())
+      availableOptions.append(desc.first);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore datapaths
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.datapathType == desc.tags.datapathType)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore forwarding/hazard detection
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.hasForwarding == desc.tags.hasForwarding)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.hasHazardDetection == desc.tags.hasHazardDetection)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore branch options
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.branchStrategy == desc.tags.branchStrategy)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.branchDelaySlots == desc.tags.branchDelaySlots)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  return selected;
 }
 
 } // namespace Ripes

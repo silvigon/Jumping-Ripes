@@ -19,7 +19,7 @@ public:
 
   QStringList getEnabledExtensions() const;
   RegisterInitialization getRegisterInitialization() const;
-  QList<ProcessorID> getSelectedProcessor(ISA isa, ProcessorTags tags);
+  QList<ProcessorID> getSelectedProcessor(ISA isa, ProcessorTags tags) const;
   const Layout *getSelectedLayout() const;
 
   ProcessorID getSelectedId() const { return m_selectedID; }
@@ -34,6 +34,7 @@ private slots:
 private:
   void populateVariants();
   void setEnabledVariants();
+  QList<ProcessorID> redirectToValidProcessor(ISA isa, ProcessorTags tags);
 
   ISA m_selectedISA;
   ProcessorID m_selectedID;
