@@ -147,7 +147,8 @@ ProcessorSelectionDialog::getRegisterInitialization() const {
 }
 
 QList<ProcessorID>
-ProcessorSelectionDialog::getSelectedProcessor(ISA isa, ProcessorTags tags) const {
+ProcessorSelectionDialog::getSelectedProcessor(ISA isa,
+                                               ProcessorTags tags) const {
   QList<ProcessorID> ids = {};
 
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
@@ -319,25 +320,27 @@ void ProcessorSelectionDialog::setEnabledVariants() {
 
   for (const auto &desc : ProcessorRegistry::getAvailableProcessors()) {
     if (desc.second->tags.datapathType == m_selectedTags.datapathType) {
-      if (desc.second->tags.hasForwarding != forwarding)
-        m_ui->hasForwarding->setEnabled(true);
-      if (desc.second->tags.hasHazardDetection != hazard)
-        m_ui->hasHazardDetection->setEnabled(true);
 
-      if (desc.second->tags.hasForwarding == m_selectedTags.hasForwarding &&
-          desc.second->tags.hasHazardDetection ==
-              m_selectedTags.hasHazardDetection) {
-        if (desc.second->tags.branchStrategy != branch)
-          m_ui->branchStrategy->setEnabled(true);
-        if (desc.second->tags.branchDelaySlots != branchSlots)
-          m_ui->branchSlots->setEnabled(true);
+      if (desc.second->tags.branchStrategy != branch)
+        m_ui->branchStrategy->setEnabled(true);
+      if (desc.second->tags.branchDelaySlots != branchSlots)
+        m_ui->branchSlots->setEnabled(true);
+
+      if (desc.second->tags.branchStrategy == m_selectedTags.branchStrategy &&
+          desc.second->tags.branchDelaySlots ==
+              m_selectedTags.branchDelaySlots) {
+        if (desc.second->tags.hasForwarding != forwarding)
+          m_ui->hasForwarding->setEnabled(true);
+        if (desc.second->tags.hasHazardDetection != hazard)
+          m_ui->hasHazardDetection->setEnabled(true);
       }
     }
   }
 }
 
 QList<ProcessorID>
-ProcessorSelectionDialog::redirectToValidProcessor(ISA isa, ProcessorTags tags) {
+ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
+                                                   ProcessorTags tags) {
   QList<ProcessorID> selected = {};
   QList<ProcessorID> availableOptions = {};
 
@@ -365,29 +368,6 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa, ProcessorTags tags) 
   if (selected.size() == 1)
     return selected;
 
-  // Explore forwarding/hazard detection
-  availableOptions = {};
-  for (auto id : selected) {
-    const auto &desc = ProcessorRegistry::getDescription(id);
-    if (tags.hasForwarding == desc.tags.hasForwarding)
-      availableOptions.append(desc.id);
-  }
-  if (!availableOptions.isEmpty())
-    selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
-
-  availableOptions = {};
-  for (auto id : selected) {
-    const auto &desc = ProcessorRegistry::getDescription(id);
-    if (tags.hasHazardDetection == desc.tags.hasHazardDetection)
-      availableOptions.append(desc.id);
-  }
-  if (!availableOptions.isEmpty())
-    selected = availableOptions;
-  if (selected.size() == 1)
-    return selected;
-
   // Explore branch options
   availableOptions = {};
   for (auto id : selected) {
@@ -404,6 +384,29 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa, ProcessorTags tags) 
   for (auto id : selected) {
     const auto &desc = ProcessorRegistry::getDescription(id);
     if (tags.branchDelaySlots == desc.tags.branchDelaySlots)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  // Explore forwarding/hazard detection
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.hasForwarding == desc.tags.hasForwarding)
+      availableOptions.append(desc.id);
+  }
+  if (!availableOptions.isEmpty())
+    selected = availableOptions;
+  if (selected.size() == 1)
+    return selected;
+
+  availableOptions = {};
+  for (auto id : selected) {
+    const auto &desc = ProcessorRegistry::getDescription(id);
+    if (tags.hasHazardDetection == desc.tags.hasHazardDetection)
       availableOptions.append(desc.id);
   }
   if (!availableOptions.isEmpty())
