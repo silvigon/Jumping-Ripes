@@ -184,7 +184,7 @@ void RegisterInitializationWidget::addRegisterInitialization(
   const QIcon removeIcon = QIcon(":/icons/delete.svg");
   w->remove->setIcon(removeIcon);
 
-  w->value->setFont(QFont(Fonts::monospace));	// MODIFIED
+  w->value->setFont(QFont(Fonts::monospace));
   w->value->setValidator(m_hexValidator);
   w->value->setText(
       "0x" +

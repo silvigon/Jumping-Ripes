@@ -60,7 +60,7 @@ struct Layout {
   bool operator==(const Layout &rhs) const { return this->name == rhs.name; }
 };
 
-// MODIFIED: Processor tags
+// Processor tags
 enum DatapathType { SS, P_5S, P_6SD };
 const static std::map<DatapathType, QString> DatapathNames = {
     {DatapathType::SS, "Single-stage"},
@@ -104,7 +104,7 @@ public:
   ProcessorID id;
   QString name;
   QString description;
-  ProcessorTags tags; // MODIFIED
+  ProcessorTags tags;
   RegisterInitialization defaultRegisterVals;
   std::vector<Layout> layouts;
   virtual ProcessorISAInfo isaInfo() const = 0;

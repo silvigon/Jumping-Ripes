@@ -15,7 +15,6 @@
 #include "pipelinediagramwidget.h"
 #include "processorhandler.h"
 #include "processorregistry.h"
-#include "processorconfigdialog.h"
 #include "processorselectiondialog.h"
 #include "registercontainerwidget.h"
 #include "registermodel.h"
@@ -372,8 +371,7 @@ void ProcessorTab::loadProcessorToWidget(const Layout *layout) {
 
 void ProcessorTab::processorSelection() {
   m_autoClockAction->setChecked(false);
-  //ProcessorSelectionDialog diag;
-  ProcessorConfigDialog diag;
+  ProcessorSelectionDialog diag;
   if (diag.exec()) {
     // New processor model was selected
     m_vsrtlWidget->clearDesign();
