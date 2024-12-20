@@ -70,17 +70,51 @@ struct Layout {
   bool operator==(const Layout &rhs) const { return this->name == rhs.name; }
 };
 
+// Processor tags
+enum DatapathType { SS, P_5S, P_6SD };
+const static std::map<DatapathType, QString> DatapathNames = {
+    {DatapathType::SS, "Single-stage"},
+    {DatapathType::P_5S, "Five-stage"},
+    {DatapathType::P_6SD, "Six-stage dual-issue"}};
+
+enum BranchStrategy { N_A, PNT, DB };
+const static std::map<BranchStrategy, QString> BranchNames = {
+    {BranchStrategy::N_A, "Not applicable"},
+    {BranchStrategy::PNT, "Predict not taken"},
+    {BranchStrategy::DB, "Delayed branch"}};
+
+enum BranchDelaySlots { NONE, ONE, TWO, THREE };
+
+struct ProcessorTags {
+  DatapathType datapathType;
+  BranchStrategy branchStrategy;
+  BranchDelaySlots branchDelaySlots;
+  bool hasForwarding;
+  bool hasHazardDetection;
+
+  bool operator==(const ProcessorTags &rhs) const {
+    return datapathType == rhs.datapathType &&
+           branchStrategy == rhs.branchStrategy &&
+           branchDelaySlots == rhs.branchDelaySlots &&
+           hasForwarding == rhs.hasForwarding &&
+           hasHazardDetection == rhs.hasHazardDetection;
+  }
+
+  bool operator!=(const ProcessorTags &rhs) const { return !(*this == rhs); }
+};
+
 class ProcInfoBase {
 public:
   ProcInfoBase(ProcessorID _id, const QString &_name, const QString &_desc,
-               const std::vector<Layout> &_layouts,
+               const ProcessorTags &_tags, const std::vector<Layout> &_layouts,
                const RegisterInitialization &_defaultRegVals = {})
-      : id(_id), name(_name), description(_desc),
+      : id(_id), name(_name), description(_desc), tags(_tags),
         defaultRegisterVals(_defaultRegVals), layouts(_layouts) {}
   virtual ~ProcInfoBase() = default;
   ProcessorID id;
   QString name;
   QString description;
+  ProcessorTags tags;
   RegisterInitialization defaultRegisterVals;
   std::vector<Layout> layouts;
   virtual ProcessorISAInfo isaInfo() const = 0;
