@@ -77,6 +77,7 @@ constexpr const char rv6s_desc[] =
 constexpr const ProcessorTags rvss_tags = {
     DatapathType::SS, BranchStrategy::N_A, BranchDelaySlots::NONE,
     false, false};
+
 constexpr const ProcessorTags rv5s_no_fw_hz_tags = {
     DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO,
     false, false};
@@ -88,6 +89,20 @@ constexpr const ProcessorTags rv5s_no_hz_tags = {
     true, false};
 constexpr const ProcessorTags rv5s_tags = {
     DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::TWO, true, true};
+
+constexpr const ProcessorTags rv5s_2s_db_tags = {
+    DatapathType::P_5S, BranchStrategy::DB, BranchDelaySlots::TWO, true, true};
+constexpr const ProcessorTags rv5s_1s_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::ONE, true, true};
+constexpr const ProcessorTags rv5s_1s_db_tags = {
+    DatapathType::P_5S, BranchStrategy::DB, BranchDelaySlots::ONE, true, true};
+constexpr const ProcessorTags rv5s_3s_tags = {
+    DatapathType::P_5S, BranchStrategy::PNT, BranchDelaySlots::THREE,
+	true, true};
+constexpr const ProcessorTags rv5s_3s_db_tags = {
+    DatapathType::P_5S, BranchStrategy::DB, BranchDelaySlots::THREE,
+	true, true};
+
 constexpr const ProcessorTags rv6s_tags = {
     DatapathType::P_6SD, BranchStrategy::PNT, BranchDelaySlots::THREE,
     true, true};
@@ -225,10 +240,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_2S_DB<uint32_t>>(
       ProcessorID::RV32_5S_2S_DB, "5-stage processor (2-slot delayed branch)",
-      rv5s_2s_db_desc, layouts, defRegVals));
+      rv5s_2s_db_desc, rv5s_2s_db_tags, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_2S_DB<uint64_t>>(
       ProcessorID::RV64_5S_2S_DB, "5-stage processor (2-slot delayed branch)",
-      rv5s_2s_db_desc, layouts, defRegVals));
+      rv5s_2s_db_desc, rv5s_2s_db_tags, layouts, defRegVals));
 
   // RISC-V 5-stage (1-slot predict-not-taken)
   layouts = {{"Standard",
@@ -248,10 +263,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S<uint32_t>>(
       ProcessorID::RV32_5S_1S, "5-stage processor (1-slot predict-not-taken)",
-      rv5s_1s_desc, layouts, defRegVals));
+      rv5s_1s_desc, rv5s_1s_tags, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S<uint64_t>>(
       ProcessorID::RV64_5S_1S, "5-stage processor (1-slot predict-not-taken)",
-      rv5s_1s_desc, layouts, defRegVals));
+      rv5s_1s_desc, rv5s_1s_tags, layouts, defRegVals));
 
   // RISC-V 5-stage (1-slot delayed branch)
   layouts = {{"Standard",
@@ -271,10 +286,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S_DB<uint32_t>>(
       ProcessorID::RV32_5S_1S_DB, "5-stage processor (1-slot delayed branch)",
-      rv5s_1s_db_desc, layouts, defRegVals));
+      rv5s_1s_db_desc, rv5s_1s_db_tags, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_1S_DB<uint64_t>>(
       ProcessorID::RV64_5S_1S_DB, "5-stage processor (1-slot delayed branch)",
-      rv5s_1s_db_desc, layouts, defRegVals));
+      rv5s_1s_db_desc, rv5s_1s_db_tags, layouts, defRegVals));
 
   // RISC-V 5-stage (3-slot predict-not-taken)
   layouts = {{"Standard",
@@ -294,10 +309,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_3S<uint32_t>>(
       ProcessorID::RV32_5S_3S, "5-stage processor (3-slot predict-not-taken)",
-      rv5s_3s_desc, layouts, defRegVals));
+      rv5s_3s_desc, rv5s_3s_tags, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_3S<uint64_t>>(
       ProcessorID::RV64_5S_3S, "5-stage processor (3-slot predict-not-taken)",
-      rv5s_3s_desc, layouts, defRegVals));
+      rv5s_3s_desc, rv5s_3s_tags, layouts, defRegVals));
 
   // RISC-V 5-stage (3-slot delayed branch)
   layouts = {{"Standard",
@@ -317,10 +332,10 @@ ProcessorRegistry::ProcessorRegistry() {
   defRegVals = {{RVISA::GPR, {{2, 0x7ffffff0}, {3, 0x10000000}}}};
   addProcessor(ProcInfo<vsrtl::core::RV5S_3S_DB<uint32_t>>(
       ProcessorID::RV32_5S_3S_DB, "5-stage processor (3-slot delayed branch)",
-      rv5s_3s_db_desc, layouts, defRegVals));
+      rv5s_3s_db_desc, rv5s_3s_db_tags, layouts, defRegVals));
   addProcessor(ProcInfo<vsrtl::core::RV5S_3S_DB<uint64_t>>(
       ProcessorID::RV64_5S_3S_DB, "5-stage processor (3-slot delayed branch)",
-      rv5s_3s_db_desc, layouts, defRegVals));
+      rv5s_3s_db_desc, rv5s_3s_db_tags, layouts, defRegVals));
 
   // RISC-V 6-stage dual issue
   layouts = {{"Extended",
