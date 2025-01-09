@@ -22,20 +22,20 @@
 
 // Stage separating registers
 #include "../rv5s_no_fw_hz/rv5s_no_fw_hz_ifid.h"
-#include "rv5s_exmem.h"
-#include "rv5s_idex.h"
-#include "rv5s_memwb.h"
+#include "rv5s_3s_exmem.h"	// MODIFIED
+#include "../rv5s/rv5s_idex.h"
+#include "../rv5s/rv5s_memwb.h"
 
 // Forwarding & Hazard detection unit
-#include "rv5s_forwardingunit.h"
-#include "rv5s_hazardunit.h"
+#include "../rv5s/rv5s_forwardingunit.h"
+#include "../rv5s/rv5s_hazardunit.h"
 
 namespace vsrtl {
 namespace core {
 using namespace Ripes;
 
 template <typename XLEN_T>
-class RV5S : public RipesVSRTLProcessor {
+class RV5S_3S : public RipesVSRTLProcessor {
   static_assert(std::is_same<uint32_t, XLEN_T>::value ||
                     std::is_same<uint64_t, XLEN_T>::value,
                 "Only supports 32- and 64-bit variants");
@@ -43,8 +43,8 @@ class RV5S : public RipesVSRTLProcessor {
 
 public:
   enum Stage { IF = 0, ID = 1, EX = 2, MEM = 3, WB = 4, STAGECOUNT };
-  RV5S(const QStringList &extensions)
-      : RipesVSRTLProcessor("5-Stage RISC-V Processor") {
+  RV5S_3S(const QStringList &extensions)
+      : RipesVSRTLProcessor("5-Stage RISC-V Processor (3-slot predict-not-taken)") {
     m_enabledISA = ISAInfoRegistry::getISA<XLenToRVISA<XLEN>()>(extensions);
     decode->setISA(m_enabledISA);
     uncompress->setISA(m_enabledISA);
@@ -55,7 +55,9 @@ public:
     pc_inc->out >> pc_4->op2;
     pc_src->out >> pc_reg->in;
     0 >> pc_reg->clear;
-    hzunit->hazardFEEnable >> pc_reg->enable;
+    // MODIFIED: re-route hazardFEEenable to enable overriding on branches
+    //hzunit->hazardFEEnable >> pc_reg->enable;
+    fee_enable_or->out >> pc_reg->enable;
 
     2 >> pc_inc->get(PcInc::INC2);
     4 >> pc_inc->get(PcInc::INC4);
@@ -64,9 +66,12 @@ public:
     // Note: pc_src works uses the PcSrc enum, but is selected by the boolean
     // signal from the controlflow OR gate. PcSrc enum values must adhere to the
     // boolean 0/1 values.
-    controlflow_or->out >> pc_src->select;
+    // MODIFIED: controlflow_or->out is routed through exmem->do_branch
+    //controlflow_or->out >> pc_src->select;
+    //controlflow_or->out >> *efsc_or->in[0];
+    exmem_reg->do_branch_out >> pc_src->select;
+    exmem_reg->do_branch_out >> *efsc_or->in[0];
 
-    controlflow_or->out >> *efsc_or->in[0];
     ecallChecker->syscallExit >> *efsc_or->in[1];
 
     efsc_or->out >> *efschz_or->in[0];
@@ -117,7 +122,14 @@ public:
     idex_reg->do_jmp_out >> *controlflow_or->in[1];
 
     pc_4->out >> pc_src->get(PcSrc::PC4);
-    alu->res >> pc_src->get(PcSrc::ALU);
+    // MODIFIED: get ALU result from EXMEM
+    //alu->res >> pc_src->get(PcSrc::ALU);
+    exmem_reg->alures_out >> pc_src->get(PcSrc::ALU);
+
+    // MODIFIED: override enabling the pipeline front end on branches
+    //           stops pipeline stalls and flushes from conflicting
+    exmem_reg->do_branch_out >> *fee_enable_or->in[0];
+    hzunit->hazardFEEnable >> *fee_enable_or->in[1];
 
     // -----------------------------------------------------------------------
     // ALU
@@ -170,7 +182,9 @@ public:
     pc_4->out >> ifid_reg->pc4_in;
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
-    hzunit->hazardFEEnable >> ifid_reg->enable;
+    // MODIFIED: re-route hazardFEEenable to enable overriding on branches
+    //hzunit->hazardFEEnable >> ifid_reg->enable;
+    fee_enable_or->out >> ifid_reg->enable;
     efsc_or->out >> ifid_reg->clear;
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
@@ -213,7 +227,14 @@ public:
     // -----------------------------------------------------------------------
     // EX/MEM
     1 >> exmem_reg->enable;
-    hzunit->hazardEXMEMClear >> exmem_reg->clear;
+
+    // MODIFIED: exmem_reg->clear can be asserted by either hazardEXMEMClear
+    //           or do_branch_out via intermediate OR gate
+    //hzunit->hazardEXMEMClear >> exmem_reg->clear;
+    exmem_reg->do_branch_out >> *mem_clear_or->in[0];
+    hzunit->hazardEXMEMClear >> *mem_clear_or->in[1];
+    mem_clear_or->out >> exmem_reg->clear;
+
     hzunit->hazardEXMEMClear >> *mem_stalled_or->in[0];
     idex_reg->stalled_out >> *mem_stalled_or->in[1];
     mem_stalled_or->out >> exmem_reg->stalled_in;
@@ -233,6 +254,8 @@ public:
     idex_reg->mem_op_out >> exmem_reg->mem_op_in;
 
     idex_reg->valid_out >> exmem_reg->valid_in;
+
+    controlflow_or->out >> exmem_reg->do_branch_in;	// MODIFIED
 
     // -----------------------------------------------------------------------
     // MEM/WB
@@ -294,7 +317,7 @@ public:
   // Stage seperating registers
   SUBCOMPONENT(ifid_reg, TYPE(IFID<XLEN>));
   SUBCOMPONENT(idex_reg, TYPE(RV5S_IDEX<XLEN>));
-  SUBCOMPONENT(exmem_reg, TYPE(RV5S_EXMEM<XLEN>));
+  SUBCOMPONENT(exmem_reg, TYPE(RV5S_3S_EXMEM<XLEN>));	// MODIFIED
   SUBCOMPONENT(memwb_reg, TYPE(RV5S_MEMWB<XLEN>));
 
   // Multiplexers
@@ -325,6 +348,11 @@ public:
   SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
+
+  // MODIFIED: True if controlflow action or ECALL hazard is detected
+  SUBCOMPONENT(mem_clear_or, TYPE(Or<1, 2>));
+  // MODIFIED: True if pipeline is not stalling or if controlflow action
+  SUBCOMPONENT(fee_enable_or, TYPE(Or<1, 2>));
 
   // Address spaces
   ADDRESSSPACEMM(m_memory);
@@ -386,7 +414,7 @@ public:
         }
 
         // Are we currently clearing the pipeline due to a syscall exit?
-        // if such, all stages before the EX stage are invalid
+		// if such, all stages before the EX stage are invalid
         if(stage.index() < EX){
             stageValid &= !ecallChecker->isSysCallExiting();
         }
