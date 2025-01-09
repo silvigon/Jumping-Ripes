@@ -65,9 +65,6 @@ constexpr const char rv5s_3s_db_desc[] =
     "A 5-stage in-order processor with hazard detection/elimination and "
     "forwarding, with delayed branches solved at the WB stage."
     delayed_branch_note;
-constexpr const char rv5s_no_fw_desc[] =
-    "A 5-stage in-order processor with hazard detection/elimination but no "
-    "forwarding unit.";
 
 constexpr const char rv6s_desc[] =
     "A 6-stage dual-issue in-order processor. Each way may execute "
