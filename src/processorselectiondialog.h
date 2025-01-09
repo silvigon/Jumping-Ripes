@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QDialog>
-#include <QTreeWidget>
 
 #include "processorregistry.h"
 
@@ -18,19 +17,28 @@ public:
   explicit ProcessorSelectionDialog(QWidget *parent = nullptr);
   ~ProcessorSelectionDialog();
 
-  ProcessorID getSelectedId() const { return m_selectedID; }
-  RegisterInitialization getRegisterInitialization() const;
-  const Layout *getSelectedLayout() const;
   QStringList getEnabledExtensions() const;
+  RegisterInitialization getRegisterInitialization() const;
+  QList<ProcessorID> getSelectedProcessor(ISA isa, ProcessorTags tags) const;
+  const Layout *getSelectedLayout() const;
+
+  ProcessorID getSelectedId() const { return m_selectedID; }
+
+signals:
+  void selectionChanged(ISA isa, ProcessorTags tags) const;
 
 private slots:
-  void selectionChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+  void updateSelectedTags();
+  void updateDialog(ISA isa, ProcessorTags tags);
 
 private:
-  bool isCPUItem(const QTreeWidgetItem *item) const;
+  void populateVariants();
+  void setEnabledVariants();
+  QList<ProcessorID> redirectToValidProcessor(ISA isa, ProcessorTags tags);
 
-  enum ProcessorTreeColums { ProcessorColumn, ColumnCount };
+  ISA m_selectedISA;
   ProcessorID m_selectedID;
+  ProcessorTags m_selectedTags;
   Ui::ProcessorSelectionDialog *m_ui;
   std::map<ProcessorID, QStringList> m_selectedExtensionsForID;
 };
