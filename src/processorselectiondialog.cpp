@@ -146,19 +146,6 @@ ProcessorSelectionDialog::getRegisterInitialization() const {
   return m_ui->regInitWidget->getInitialization();
 }
 
-QList<ProcessorID>
-ProcessorSelectionDialog::getSelectedProcessor(ISA isa,
-                                               ProcessorTags tags) const {
-  QList<ProcessorID> ids = {};
-
-  for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
-    if (desc.second->isaInfo().isa->isaID() == isa && desc.second->tags == tags)
-      ids.append(desc.first);
-
-  // ids.size() should be 1, otherwise there are processors with identical tags
-  return ids;
-}
-
 const Layout *ProcessorSelectionDialog::getSelectedLayout() const {
   const auto &desc =
       ProcessorRegistry::getAvailableProcessors().at(m_selectedID);
@@ -185,7 +172,7 @@ void ProcessorSelectionDialog::updateSelectedTags() {
 
   if (m_selectedISA != selectedISA || m_selectedTags != selectedTags) {
     // Check that a processor exists with the selected properties
-    if (getSelectedProcessor(selectedISA, selectedTags).size() > 0) {
+    if (ProcessorRegistry::getProcessor(selectedISA, selectedTags).size() > 0) {
       m_selectedISA = selectedISA;
       m_selectedTags = selectedTags;
     }
@@ -204,7 +191,7 @@ void ProcessorSelectionDialog::updateSelectedTags() {
 }
 
 void ProcessorSelectionDialog::updateDialog(ISA isa, ProcessorTags tags) {
-  QList<ProcessorID> selected = getSelectedProcessor(isa, tags);
+  QList<ProcessorID> selected = ProcessorRegistry::getProcessor(isa, tags);
 
   // Check valid selection and update selected processor
   m_ui->buttonBox->button(QDialogButtonBox::Ok)

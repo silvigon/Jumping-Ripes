@@ -158,6 +158,18 @@ public:
     return it->second->construct(extensions);
   }
 
+  static QList<ProcessorID> getProcessor(ISA isa, ProcessorTags tags) {
+    QList<ProcessorID> ids = {};
+
+    for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
+      if (desc.second->isaInfo().isa->isaID() == isa &&
+          desc.second->tags == tags)
+        ids.append(desc.first);
+
+    // ids.size() should be 1, else there are processors with identical tags
+    return ids;
+  }
+
 private:
   template <typename T>
   void addProcessor(const ProcInfo<T> &pinfo) {
