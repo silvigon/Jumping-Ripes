@@ -33,7 +33,7 @@ private slots:
 private:
   void populateVariants();
   void setEnabledVariants();
-  QList<ProcessorID> redirectToValidProcessor(ISA isa, ProcessorTags tags);
+  ProcessorID redirectToValidProcessor(ISA isa, ProcessorTags tags);
 
   ISA m_selectedISA;
   ProcessorID m_selectedID;

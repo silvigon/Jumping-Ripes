@@ -179,7 +179,7 @@ void ProcessorSelectionDialog::updateSelectedTags() {
     // Otherwise, redirect to the closest valid processor
     else {
       const auto &desc = ProcessorRegistry::getDescription(
-          redirectToValidProcessor(selectedISA, selectedTags)[0]);
+          redirectToValidProcessor(selectedISA, selectedTags));
       selectedISA = desc.isaInfo().isa->isaID();
       selectedTags = desc.tags;
       m_selectedISA = selectedISA;
@@ -327,7 +327,7 @@ void ProcessorSelectionDialog::setEnabledVariants() {
   }
 }
 
-QList<ProcessorID>
+ProcessorID
 ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
                                                    ProcessorTags tags) {
   QList<ProcessorID> selected = {};
@@ -343,7 +343,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore datapaths
   availableOptions = {};
@@ -355,7 +355,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore branch options
   availableOptions = {};
@@ -367,7 +367,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   availableOptions = {};
   for (auto id : selected) {
@@ -378,7 +378,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore forwarding/hazard detection
   availableOptions = {};
@@ -390,7 +390,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   availableOptions = {};
   for (auto id : selected) {
@@ -401,9 +401,9 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
-  return selected;
+  return selected[0];
 }
 
 } // namespace Ripes
