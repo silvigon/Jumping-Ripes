@@ -27,7 +27,16 @@ void tst_CPU_Selection::tst_no_duplicates_data() {
   }
 }
 
-void tst_CPU_Selection::tst_no_duplicates() { QSKIP("not implemented"); }
+void tst_CPU_Selection::tst_no_duplicates() {
+  // Check that there aren't any processors with identical tags
+  // getProcessor should always return a list of length 1
+
+  QFETCH(ISA, isa);
+  QFETCH(ProcessorTags, tags);
+  QFETCH(QList<ProcessorID>, exp_result);
+
+  QCOMPARE(Ripes::ProcessorRegistry::getProcessor(isa, tags), exp_result);
+}
 
 QTEST_APPLESS_MAIN(tst_CPU_Selection)
 #include "tst_cpu_selection.moc"
