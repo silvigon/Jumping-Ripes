@@ -304,6 +304,8 @@ void ProcessorSelectionDialog::populateVariants() {
       }
     }
   }
+  // Sort branch delay slot options in ascending order
+  m_ui->branchSlots->model()->sort(0);
 }
 
 void ProcessorSelectionDialog::setEnabledVariants() {
