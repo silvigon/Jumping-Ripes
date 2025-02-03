@@ -146,19 +146,6 @@ ProcessorSelectionDialog::getRegisterInitialization() const {
   return m_ui->regInitWidget->getInitialization();
 }
 
-QList<ProcessorID>
-ProcessorSelectionDialog::getSelectedProcessor(ISA isa,
-                                               ProcessorTags tags) const {
-  QList<ProcessorID> ids = {};
-
-  for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
-    if (desc.second->isaInfo().isa->isaID() == isa && desc.second->tags == tags)
-      ids.append(desc.first);
-
-  // ids.size() should be 1, otherwise there are processors with identical tags
-  return ids;
-}
-
 const Layout *ProcessorSelectionDialog::getSelectedLayout() const {
   const auto &desc =
       ProcessorRegistry::getAvailableProcessors().at(m_selectedID);
@@ -185,14 +172,14 @@ void ProcessorSelectionDialog::updateSelectedTags() {
 
   if (m_selectedISA != selectedISA || m_selectedTags != selectedTags) {
     // Check that a processor exists with the selected properties
-    if (getSelectedProcessor(selectedISA, selectedTags).size() > 0) {
+    if (ProcessorRegistry::getProcessor(selectedISA, selectedTags).size() > 0) {
       m_selectedISA = selectedISA;
       m_selectedTags = selectedTags;
     }
     // Otherwise, redirect to the closest valid processor
     else {
       const auto &desc = ProcessorRegistry::getDescription(
-          redirectToValidProcessor(selectedISA, selectedTags)[0]);
+          redirectToValidProcessor(selectedISA, selectedTags));
       selectedISA = desc.isaInfo().isa->isaID();
       selectedTags = desc.tags;
       m_selectedISA = selectedISA;
@@ -204,7 +191,7 @@ void ProcessorSelectionDialog::updateSelectedTags() {
 }
 
 void ProcessorSelectionDialog::updateDialog(ISA isa, ProcessorTags tags) {
-  QList<ProcessorID> selected = getSelectedProcessor(isa, tags);
+  QList<ProcessorID> selected = ProcessorRegistry::getProcessor(isa, tags);
 
   // Check valid selection and update selected processor
   m_ui->buttonBox->button(QDialogButtonBox::Ok)
@@ -304,6 +291,8 @@ void ProcessorSelectionDialog::populateVariants() {
       }
     }
   }
+  // Sort branch delay slot options in ascending order
+  m_ui->branchSlots->model()->sort(0);
 }
 
 void ProcessorSelectionDialog::setEnabledVariants() {
@@ -338,7 +327,7 @@ void ProcessorSelectionDialog::setEnabledVariants() {
   }
 }
 
-QList<ProcessorID>
+ProcessorID
 ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
                                                    ProcessorTags tags) {
   QList<ProcessorID> selected = {};
@@ -354,7 +343,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore datapaths
   availableOptions = {};
@@ -366,7 +355,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore branch options
   availableOptions = {};
@@ -378,7 +367,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   availableOptions = {};
   for (auto id : selected) {
@@ -389,7 +378,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   // Explore forwarding/hazard detection
   availableOptions = {};
@@ -401,7 +390,7 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
   availableOptions = {};
   for (auto id : selected) {
@@ -412,9 +401,9 @@ ProcessorSelectionDialog::redirectToValidProcessor(ISA isa,
   if (!availableOptions.isEmpty())
     selected = availableOptions;
   if (selected.size() == 1)
-    return selected;
+    return selected[0];
 
-  return selected;
+  return selected[0];
 }
 
 } // namespace Ripes

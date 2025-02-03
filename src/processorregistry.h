@@ -21,27 +21,28 @@ QString enumToString(T value) {
 
 // =============================== Processors =================================
 // The order of the ProcessorID enum defines the order in which the processors'
-// properties populate the options in the processor configuration dialog.
+// properties populate the datapath and branch strategy options in the processor
+// configuration dialog.
 enum ProcessorID {
   RV32_SS,
-  RV32_5S_1S,
-  RV32_5S_1S_DB,
   RV32_5S_NO_FW_HZ,
   RV32_5S_NO_HZ,
   RV32_5S_NO_FW,
   RV32_5S,
+  RV32_5S_1S,
+  RV32_5S_1S_DB,
   RV32_5S_2S_DB,
   RV32_5S_3S,
   RV32_5S_3S_DB,
   RV32_6S_DUAL,
 
   RV64_SS,
-  RV64_5S_1S,
-  RV64_5S_1S_DB,
   RV64_5S_NO_FW_HZ,
   RV64_5S_NO_HZ,
   RV64_5S_NO_FW,
   RV64_5S,
+  RV64_5S_1S,
+  RV64_5S_1S_DB,
   RV64_5S_2S_DB,
   RV64_5S_3S,
   RV64_5S_3S_DB,
@@ -155,6 +156,18 @@ public:
     auto it = _this.m_descriptions.find(id);
     Q_ASSERT(it != _this.m_descriptions.end());
     return it->second->construct(extensions);
+  }
+
+  static QList<ProcessorID> getProcessor(ISA isa, ProcessorTags tags) {
+    QList<ProcessorID> ids = {};
+
+    for (const auto &desc : ProcessorRegistry::getAvailableProcessors())
+      if (desc.second->isaInfo().isa->isaID() == isa &&
+          desc.second->tags == tags)
+        ids.append(desc.first);
+
+    // ids.size() should be 1, else there are processors with identical tags
+    return ids;
   }
 
 private:
