@@ -9,7 +9,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent), m_ui(new Ui::AboutDialog) {
 
   const QString name = "Ripes";
-  const QString url = "https://github.com/mortbopet/Ripes";
+  const QString url = "https://github.com/silvigon/Jumping-Ripes";
 
   QString info = QString();
   info.append("<p><b>" + name + "</b><br/>" + getRipesVersion() + "</p>");
