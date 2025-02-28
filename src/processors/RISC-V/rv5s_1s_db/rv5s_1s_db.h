@@ -45,7 +45,8 @@ class RV5S_1S_DB : public RipesVSRTLProcessor {
 public:
   enum Stage { IF = 0, ID = 1, EX = 2, MEM = 3, WB = 4, STAGECOUNT };
   RV5S_1S_DB(const QStringList &extensions)
-      : RipesVSRTLProcessor("5-Stage RISC-V Processor (1-slot delayed branch)") {
+      : RipesVSRTLProcessor(
+            "5-Stage RISC-V Processor (1-slot delayed branch)") {
     m_enabledISA = ISAInfoRegistry::getISA<XLenToRVISA<XLEN>()>(extensions);
     decode->setISA(m_enabledISA);
     uncompress->setISA(m_enabledISA);
@@ -67,15 +68,12 @@ public:
     // boolean 0/1 values.
     controlflow_or->out >> pc_src->select;
 
-    // MODIFIED: routes syscallExit straight to ifid_reg.clear
-    //controlflow_or->out >> *efsc_or->in[0];
-    //ecallChecker->syscallExit >> *efsc_or->in[1];
-    ecallChecker->syscallExit >> ifid_reg->clear;
-
-    // MODIFIED: routes hazardIDEXClear straight to idex_reg.clear
-    //efsc_or->out >> *efschz_or->in[0];
-    //hzunit->hazardIDEXClear >> *efschz_or->in[1];
-    hzunit->hazardIDEXClear >> idex_reg->clear;
+    // MODIFIED: disconnect controlflow and syscallExit signals from efsc_or
+    // controlflow_or->out >> *efsc_or->in[0];
+    // ecallChecker->syscallExit >> *efsc_or->in[1];
+    // efsc_or->out >> *efschz_or->in[0];
+    ecallChecker->syscallExit >> *efschz_or->in[0];
+    hzunit->hazardIDEXClear >> *efschz_or->in[1];
 
     // -----------------------------------------------------------------------
     // Instruction memory
@@ -115,42 +113,42 @@ public:
     // MODIFIED: moved to ID stage, added forwarding multiplexers
 
     // branch forwarding source selection
-    registerFile->r1_out  >> branch_op1_src->get(ForwardingSrc_1S::IdStage);
-    alu->res              >> branch_op1_src->get(ForwardingSrc_1S::ExStage);
+    registerFile->r1_out >> branch_op1_src->get(ForwardingSrc_1S::IdStage);
+    alu->res >> branch_op1_src->get(ForwardingSrc_1S::ExStage);
     exmem_reg->alures_out >> branch_op1_src->get(ForwardingSrc_1S::MemStage);
-    reg_wr_src->out       >> branch_op1_src->get(ForwardingSrc_1S::WbStage);
+    reg_wr_src->out >> branch_op1_src->get(ForwardingSrc_1S::WbStage);
     funit->branch_op1_fwctrl >> branch_op1_src->select;
 
-    registerFile->r2_out  >> branch_op2_src->get(ForwardingSrc_1S::IdStage);
-    alu->res              >> branch_op2_src->get(ForwardingSrc_1S::ExStage);
+    registerFile->r2_out >> branch_op2_src->get(ForwardingSrc_1S::IdStage);
+    alu->res >> branch_op2_src->get(ForwardingSrc_1S::ExStage);
     exmem_reg->alures_out >> branch_op2_src->get(ForwardingSrc_1S::MemStage);
-    reg_wr_src->out       >> branch_op2_src->get(ForwardingSrc_1S::WbStage);
+    reg_wr_src->out >> branch_op2_src->get(ForwardingSrc_1S::WbStage);
     funit->branch_op2_fwctrl >> branch_op2_src->select;
 
     // jump target operand source selection
-    ifid_reg->pc_out     >> jump_addr_src->get(AluSrc1::PC);
-    branch_op1_src->out  >> jump_addr_src->get(AluSrc1::REG1);
+    ifid_reg->pc_out >> jump_addr_src->get(AluSrc1::PC);
+    branch_op1_src->out >> jump_addr_src->get(AluSrc1::REG1);
     control->alu_op1_ctrl >> jump_addr_src->select;
 
-    //idex_reg->br_op_out >> branch->comp_op;
-    //reg1_fw_src->out >> branch->op1;
-    //reg2_fw_src->out >> branch->op2;
-    control->comp_ctrl >> branch->comp_op;	//
-    branch_op1_src->out >> branch->op1;		//
-    branch_op2_src->out >> branch->op2;		// MODIFIED
+    // idex_reg->br_op_out >> branch->comp_op;
+    // reg1_fw_src->out >> branch->op1;
+    // reg2_fw_src->out >> branch->op2;
+    control->comp_ctrl >> branch->comp_op; //
+    branch_op1_src->out >> branch->op1;    //
+    branch_op2_src->out >> branch->op2;    // MODIFIED
 
     branch->res >> *br_and->in[0];
     br_and->out >> *controlflow_or->in[0];
-    //idex_reg->do_br_out >> *br_and->in[1];
-    //idex_reg->do_jmp_out >> *controlflow_or->in[1];
-    control->do_branch >> *br_and->in[1];			//
-    control->do_jump >> *controlflow_or->in[1];		// MODIFIED
+    // idex_reg->do_br_out >> *br_and->in[1];
+    // idex_reg->do_jmp_out >> *controlflow_or->in[1];
+    control->do_branch >> *br_and->in[1];       //
+    control->do_jump >> *controlflow_or->in[1]; // MODIFIED
 
     // MODIFIED: get branch target address from dedicated adder
-    //alu->res >> pc_src->get(PcSrc::ALU);
+    // alu->res >> pc_src->get(PcSrc::ALU);
     jump_addr_src->out >> branch_adder->op1;
     immediate->imm >> branch_adder->op2;
-    branch_adder->out >> pc_src->get(PcSrc::ALU);	// MODIFIED
+    branch_adder->out >> pc_src->get(PcSrc::ALU); // MODIFIED
     pc_4->out >> pc_src->get(PcSrc::PC4);
 
     // -----------------------------------------------------------------------
@@ -205,7 +203,9 @@ public:
     pc_reg->out >> ifid_reg->pc_in;
     uncompress->exp_instr >> ifid_reg->instr_in;
     hzunit->hazardFEEnable >> ifid_reg->enable;
-    //efsc_or->out >> ifid_reg->clear;		// MODIFIED
+    // MODIFIED: IF/ID is cleared directly by syscallExit
+    // efsc_or->out >> ifid_reg->clear;
+    ecallChecker->syscallExit >> ifid_reg->clear;
     1 >> ifid_reg->valid_in; // Always valid unless register is cleared
 
     // -----------------------------------------------------------------------
@@ -216,7 +216,7 @@ public:
     // ID/EX
     hzunit->hazardIDEXEnable >> idex_reg->enable;
     hzunit->hazardIDEXClear >> idex_reg->stalled_in;
-    //efschz_or->out >> idex_reg->clear;	// MODIFIED
+    efschz_or->out >> idex_reg->clear;
 
     // Data
     ifid_reg->pc4_out >> idex_reg->pc4_in;
@@ -288,13 +288,13 @@ public:
 
     // -----------------------------------------------------------------------
     // Forwarding unit
-    decode->r1_reg_idx >> funit->if_reg1_idx;			//
-    decode->r2_reg_idx >> funit->if_reg2_idx;			// MODIFIED
+    decode->r1_reg_idx >> funit->if_reg1_idx; //
+    decode->r2_reg_idx >> funit->if_reg2_idx; // MODIFIED
     idex_reg->rd_reg1_idx_out >> funit->id_reg1_idx;
     idex_reg->rd_reg2_idx_out >> funit->id_reg2_idx;
 
-    idex_reg->wr_reg_idx_out >> funit->ex_reg_wr_idx;	//
-    idex_reg->reg_do_write_out >> funit->ex_reg_wr_en;	// MODIFIED
+    idex_reg->wr_reg_idx_out >> funit->ex_reg_wr_idx;  //
+    idex_reg->reg_do_write_out >> funit->ex_reg_wr_en; // MODIFIED
 
     exmem_reg->wr_reg_idx_out >> funit->mem_reg_wr_idx;
     exmem_reg->reg_do_write_out >> funit->mem_reg_wr_en;
@@ -329,7 +329,7 @@ public:
   SUBCOMPONENT(immediate, TYPE(Immediate<XLEN>));
   SUBCOMPONENT(decode, TYPE(Decode<XLEN>));
   SUBCOMPONENT(branch, TYPE(Branch<XLEN>));
-  SUBCOMPONENT(branch_adder, TYPE(Adder<XLEN>));	// MODIFIED
+  SUBCOMPONENT(branch_adder, TYPE(Adder<XLEN>)); // MODIFIED
   SUBCOMPONENT(pc_4, Adder<XLEN>);
   SUBCOMPONENT(uncompress, TYPE(Uncompress<XLEN>));
 
@@ -370,9 +370,9 @@ public:
   // True if branch taken or jump instruction
   SUBCOMPONENT(controlflow_or, TYPE(Or<1, 2>));
   // True if controlflow action or performing syscall finishing
-  //SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));		// MODIFIED
+  // SUBCOMPONENT(efsc_or, TYPE(Or<1, 2>));		// MODIFIED
   // True if above or stalling due to load-use hazard
-  //SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));	// MODIFIED
+  SUBCOMPONENT(efschz_or, TYPE(Or<1, 2>));
 
   SUBCOMPONENT(mem_stalled_or, TYPE(Or<1, 2>));
 
