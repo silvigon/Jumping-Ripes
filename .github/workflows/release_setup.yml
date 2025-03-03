@@ -2,8 +2,8 @@ name: Release setup
 
 on:
   push:
-    branches:
-      - '*'
+    tags:
+      - 'Jumping-**'
 
 jobs:
   release-setup:
