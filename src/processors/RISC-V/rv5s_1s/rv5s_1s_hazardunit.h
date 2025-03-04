@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../riscv.h"
+#include "processors/RISC-V/riscv.h"
 
 #include "VSRTL/core/vsrtl_component.h"
 
@@ -72,14 +72,14 @@ private:
     const bool mem_do_mem_read = mem_do_mem_read_en.uValue();
 
     // there has to be a better way to do this
-    const bool is_branch = id_opcode.uValue() == RVInstr::JAL
-                        || id_opcode.uValue() == RVInstr::JALR
-                        || id_opcode.uValue() == RVInstr::BEQ
-                        || id_opcode.uValue() == RVInstr::BNE
-                        || id_opcode.uValue() == RVInstr::BGE
-                        || id_opcode.uValue() == RVInstr::BLT
-                        || id_opcode.uValue() == RVInstr::BGEU
-                        || id_opcode.uValue() == RVInstr::BLTU;
+    const bool is_branch = id_opcode.eValue<RVInstr>() == RVInstr::JAL
+                        || id_opcode.eValue<RVInstr>() == RVInstr::JALR
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BEQ
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BNE
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BGE
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BLT
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BGEU
+                        || id_opcode.eValue<RVInstr>() == RVInstr::BLTU;
 
     return ((ex_idx == idx1 || ex_idx == idx2) && ex_do_mem_read)
         || ((mem_idx == idx1 || mem_idx == idx2) && mem_do_mem_read && is_branch);
@@ -91,7 +91,7 @@ private:
     // register file must be performed before handling the ecall. Hence, the
     // front-end of the pipeline shall be stalled until the remainder of the
     // pipeline has been cleared and there are no more outstanding writes.
-    const bool isEcall = opcode.uValue() == RVInstr::ECALL;
+    const bool isEcall = opcode.eValue<RVInstr>() == RVInstr::ECALL;
     return isEcall && (mem_do_reg_write.uValue() || wb_do_reg_write.uValue());
   }
 };
