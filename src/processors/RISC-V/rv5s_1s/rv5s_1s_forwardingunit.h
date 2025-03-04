@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../riscv.h"
+#include "processors/RISC-V/riscv.h"
 #include "../rv5s/rv5s_forwardingunit.h"
 
 #include "VSRTL/core/vsrtl_component.h"
 
 namespace Ripes {
-Enum(ForwardingSrc_1S, IdStage, ExStage, MemStage, WbStage);
+enum class ForwardingSrc_1S { IdStage, ExStage, MemStage, WbStage };
 }
 
 namespace vsrtl {
