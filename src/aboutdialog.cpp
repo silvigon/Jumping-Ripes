@@ -8,8 +8,8 @@ namespace Ripes {
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent), m_ui(new Ui::AboutDialog) {
 
-  const QString name = "Ripes";
-  const QString url = "https://github.com/silvigon/Jumping-Ripes";
+  const QString name = "UCLM Ripes";
+  const QString url = "https://github.com/silvigon/UCLM-Ripes";
 
   QString info = QString();
   info.append("<p><b>" + name + "</b><br/>" + getRipesVersion() + "</p>");

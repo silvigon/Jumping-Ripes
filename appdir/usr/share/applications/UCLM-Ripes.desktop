@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Ripes
+Comment=A graphical processor simulator and assembly editor for the RISC-V ISA (https://github.com/silvigon/Jumping-Ripes)
+Exec=Ripes
+Icon=Ripes
+Categories=Education;Utility;
