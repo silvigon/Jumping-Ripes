@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Ripes
+Name=UCLM Ripes
 Comment=A graphical processor simulator and assembly editor for the RISC-V ISA (https://github.com/silvigon/Jumping-Ripes)
 Exec=Ripes
 Icon=Ripes
