@@ -3,7 +3,7 @@ name: Release setup
 on:
   push:
     tags:
-      - 'Jumping-**'
+      - 'R**'
 
 jobs:
   release-setup:
